@@ -378,7 +378,6 @@ Content-Type: application/json
 ...
 
 {
-	"login": "<login>",
 	"password": "<password>"
 }
 ```
@@ -448,24 +447,24 @@ Content-Type: application/json
 
 {
 "name": "27СК",
-[
+"points": [
 {
 "name": "Спутник",
 "stop": true,
 "latitude": 24.3454523,
-"longitude": 10.123450,
+"longitude": 10.123450
 },
 {
 "name": "",
 "stop": false,
 "latitude": 28.3454523,
-"longitude": 11.123450,
+"longitude": 11.123450
 },
 {
 "name": "Центр",
 "stop": true,
 "latitude": 26.3454523,
-"longitude": 15.123450,
+"longitude": 15.123450
 }
 ]
 }
@@ -479,6 +478,7 @@ true - это остановка
 Возможные коды ответа:
 
 - `200` — успешная обработка запроса.
+- `400` — неверный формат запроса;
 - `401` — пользователь не авторизован.
 - `500` — внутренняя ошибка сервера.
 
@@ -512,27 +512,27 @@ Content-Length: 0
   {
   "route_id": 22,
   "name": "27СК",
-  [
+  "points": [
   {
   "route_point_id": 1,
   "name": "Спутник",
   "stop": true,
   "latitude": 24.3454523,
-  "longitude": 10.123450,
+  "longitude": 10.123450
   },
   {
   "route_point_id": 2,
   "name": "",
   "stop": false,
   "latitude": 28.3454523,
-  "longitude": 11.123450,
+  "longitude": 11.123450
   },
   {
   "route_point_id": 3,
   "name": "Центр",
   "stop": true,
   "latitude": 26.3454523,
-  "longitude": 15.123450,
+  "longitude": 15.123450
   }
   ]
   }
