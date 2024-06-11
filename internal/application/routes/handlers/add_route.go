@@ -8,16 +8,24 @@ import (
 	"github.com/cfif1982/taxi/internal/domain/routes"
 )
 
-type AddRouteDTO struct {
-	Name   string `json:"name"`
-	Points string `json:"points"`
+// DTO для запроса и ответа
+type AddRouteRequestPointDTO struct {
+	Name      string  `json:"name"`
+	Stop      bool    `json:"stop"`
+	Latitude  float32 `json:"latitude"`
+	Longitude float32 `json:"longitude"`
+}
+
+type AddRouteRequestRouteDTO struct {
+	Name   string                    `json:"name"`
+	Points []AddRouteRequestPointDTO `json:"points"`
 }
 
 // Обрабатываем запрос на добавление маршрута
 func (h *Handler) AddRoute() http.Handler {
 
 	fn := func(rw http.ResponseWriter, req *http.Request) {
-		var addRouteDTO AddRouteDTO
+		var routeDTO AddRouteRequestRouteDTO
 
 		// после чтения тела запроса, закрываем
 		defer req.Body.Close()
@@ -28,13 +36,18 @@ func (h *Handler) AddRoute() http.Handler {
 			h.logger.Fatal(err.Error())
 		}
 
-		if err = json.Unmarshal(body, &addRouteDTO); err != nil {
+		if err = json.Unmarshal(body, &routeDTO); err != nil {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
 
+		// QUESTION: т.к. в базе данных храним список точек в виде строки json, то получаю обратно строку точек
+		// правильно делаю? получается, что сначала я из строки запроса Unmarshal в DTO, а затем обратно часть этого DTO Marshal в строку
+		// получается двойная работа. Или такой подход норм в этом случае?
+		routePointsString, _ := json.Marshal(routeDTO.Points)
+
 		// создаем маршрут из данных запроса
-		route, err := routes.CreateRoute(addRouteDTO.Name, addRouteDTO.Points)
+		route, err := routes.CreateRoute(routeDTO.Name, string(routePointsString))
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return

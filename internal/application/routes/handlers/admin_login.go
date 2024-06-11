@@ -31,6 +31,7 @@ func (h *Handler) AdminLogin() http.HandlerFunc {
 
 	// создаем функцию которую будем возвращать как http.HandlerFunc
 	adminLoginFn := func(rw http.ResponseWriter, req *http.Request) {
+
 		var adminLoginBodyRequest AdminLoginBodyRequest
 
 		// после чтения тела запроса, закрываем

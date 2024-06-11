@@ -7,8 +7,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type GetAllRoutesDTO struct {
-	ID   uuid.UUID `json:"id"`
+// DTO для запроса и ответа
+type GetAllRoutesResponseDTO struct {
+	ID   uuid.UUID `json:"route_id"`
 	Name string    `json:"name"`
 }
 
@@ -18,7 +19,7 @@ func (h *Handler) GetAllRoutes() http.Handler {
 
 	fn := func(rw http.ResponseWriter, req *http.Request) {
 
-		arrGetAllRoutesDTO := []GetAllRoutesDTO{} // слайс
+		arrGetAllRoutesDTO := []GetAllRoutesResponseDTO{} // слайс для хранения маршрутов
 
 		// запрос к БД - находим все маршруты
 		routes, err := h.routeRepo.GetAllRoutes()
@@ -33,7 +34,7 @@ func (h *Handler) GetAllRoutes() http.Handler {
 		for _, v := range *routes {
 			arrGetAllRoutesDTO = append(
 				arrGetAllRoutesDTO,
-				GetAllRoutesDTO{
+				GetAllRoutesResponseDTO{
 					ID:   v.ID(),
 					Name: v.Name(),
 				})

@@ -514,21 +514,18 @@ Content-Length: 0
   "name": "27СК",
   "points": [
   {
-  "route_point_id": 1,
   "name": "Спутник",
   "stop": true,
   "latitude": 24.3454523,
   "longitude": 10.123450
   },
   {
-  "route_point_id": 2,
   "name": "",
   "stop": false,
   "latitude": 28.3454523,
   "longitude": 11.123450
   },
   {
-  "route_point_id": 3,
   "name": "Центр",
   "stop": true,
   "latitude": 26.3454523,
@@ -560,21 +557,18 @@ Content-Length: 0
 "name": "27СК",
 [
 {
-"route_point_id": 1,
 "name": "Спутник",
 "stop": true,
 "latitude": 24.3454523,
 "longitude": 10.123450,
 },
 {
-"route_point_id": 2,
 "name": "",
 "stop": false,
 "latitude": 28.3454523,
 "longitude": 11.123450,
 },
 {
-"route_point_id": 3,
 "name": "Центр",
 "stop": true,
 "latitude": 26.3454523,
@@ -601,21 +595,18 @@ Content-Type: application/json
 "name": "27СК",
 [
 {
-"route_point_id": 1,
 "name": "Спутник",
 "stop": true,
 "latitude": 24.3454523,
 "longitude": 10.123450,
 },
 {
-"route_point_id": 2,
 "name": "",
 "stop": false,
 "latitude": 28.3454523,
 "longitude": 11.123450,
 },
 {
-"route_point_id": 3,
 "name": "Центр",
 "stop": true,
 "latitude": 26.3454523,

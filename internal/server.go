@@ -80,4 +80,6 @@ func (s *Server) SetAdminHandlers(router *chi.Mux, handler *routesHandler.Handle
 	router.Post(`/api/admin/login`, handler.AdminLogin())
 	router.Get(`/api/admin/routes`, middlewares.AdminAuthMiddleware(handler.GetAllRoutes()))
 	router.Post(`/api/admin/route`, middlewares.AdminAuthMiddleware(handler.AddRoute()))
+	router.Get(`/api/admin/route`, middlewares.AdminAuthMiddleware(handler.GetRoute()))
+	router.Put(`/api/admin/route`, middlewares.AdminAuthMiddleware(handler.EditRoute()))
 }

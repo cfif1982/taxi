@@ -33,8 +33,6 @@ func NewDriver(id int, fio string, latitude, longitude uint64, balance int) (*Dr
 // Создаем новую ССЫЛКУ
 func CreateDriver(fio string) (*Driver, error) {
 
-	// QUESTION: нужно ли здесь генерировать ID? Я хочу чтобы этот id назначала сама БД, чтобы не проводить проверку на существование такого id,
-	// т.к. этот id должен быть уникальным
 	return NewDriver(0, fio, 0, 0, 0)
 }
 

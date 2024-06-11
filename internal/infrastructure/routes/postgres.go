@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -129,12 +128,14 @@ func (r *PostgresRepository) AddRoute(route *routes.Route) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := fmt.Sprintf("INSERT INTO routes(id, name, points) VALUES (%v, '%v', '%v')", route.ID(), route.Name(), route.Points())
-	_, err := r.db.ExecContext(ctx, query)
+	query := "INSERT INTO routes(id, name, points) VALUES ($1, $2, $3)"
+	_, err := r.db.ExecContext(ctx, query, route.ID(), route.Name(), route.Points())
 	if err != nil {
 		// проверяем ошибку на предмет вставки маршрута с названием, которое уже есть в БД
-		// QUESTION: или с ID, который тоже уже есть. Как тут различить - ошибка из-за вставки с существующим именем или с существующим ID?
 		// создаем объект *pgconn.PgError - в нем будет храниться код ошибки из БД
+		// QUESTION: если я вставляю запись с уже  существующим названием, то эту ошибку я получаю - т.к. название UNIQUE
+		// но эта же самая ошибка вылезает если я вставляю запись с таким же uuid. Как различить эти ошибки?
+		// т.е. как тут различить - ошибка из-за вставки с существующим именем или с существующим ID?
 		var pgErr *pgconn.PgError
 
 		// преобразуем ошибку к типу pgconn.PgError
@@ -158,10 +159,8 @@ func (r *PostgresRepository) EditRoute(route *routes.Route) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := fmt.Sprintf("UPDATE routes "+
-		"SET name='%v', points='%v' WHERE id=%v", route.Name(), route.Points(), route.ID())
-
-	_, err := r.db.ExecContext(ctx, query)
+	query := "UPDATE routes SET name=$1, points=$2 WHERE id=$3"
+	_, err := r.db.ExecContext(ctx, query, route.Name(), route.Points(), route.ID())
 
 	if err != nil {
 		return err
@@ -178,9 +177,8 @@ func (r *PostgresRepository) DeleteRoute(route *routes.Route) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := fmt.Sprintf("DELETE FROM routes WHERE id=%v", route.ID())
-
-	_, err := r.db.ExecContext(ctx, query)
+	query := "DELETE FROM routes WHERE id=$1"
+	_, err := r.db.ExecContext(ctx, query, route.ID())
 
 	if err != nil {
 		return err
@@ -196,8 +194,8 @@ func (r *PostgresRepository) GetRouteById(id uuid.UUID) (*routes.Route, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := fmt.Sprintf("SELECT id, name, points FROM route WHERE id=%v", id)
-	row := r.db.QueryRowContext(ctx, query)
+	query := "SELECT name, points FROM routes WHERE id=$1"
+	row := r.db.QueryRowContext(ctx, query, id)
 
 	// в эту переменную будет сканиться результат запроса
 	var name string

@@ -1,9 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS routes(
-	id int PRIMARY KEY,
+  id UUID PRIMARY KEY,
 	name VARCHAR(7) UNIQUE NOT NULL,
-  points text
+  points TEXT
 );
 -- +goose StatementEnd
 

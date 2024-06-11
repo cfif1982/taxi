@@ -14,7 +14,7 @@ func main() {
 
 	// Если логгер не инициализировался, то выводим сообщение с помощью обычного log
 	if err != nil {
-		log.Fatal("cannot initialize zap")
+		log.Fatal("logger zap initialization: FAILURE")
 	}
 
 	// выводим сообщенеи об успешной инициализации логгера
