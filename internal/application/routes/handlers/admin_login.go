@@ -25,12 +25,11 @@ type AdminLoginBodyRequest struct {
 	Password string `json:"password"`
 }
 
-// Обрабатываем запрос на добавление ссылки в БД
-// func (h *Handler) AdminLogin(rw http.ResponseWriter, req *http.Request) http.HandlerFunc {
+// Обрабатываем запрос на авторизацию админа
 func (h *Handler) AdminLogin() http.HandlerFunc {
 
 	// создаем функцию которую будем возвращать как http.HandlerFunc
-	adminLoginFn := func(rw http.ResponseWriter, req *http.Request) {
+	fn := func(rw http.ResponseWriter, req *http.Request) {
 
 		var adminLoginBodyRequest AdminLoginBodyRequest
 
@@ -65,7 +64,7 @@ func (h *Handler) AdminLogin() http.HandlerFunc {
 		}
 	}
 
-	return http.HandlerFunc(adminLoginFn)
+	return http.HandlerFunc(fn)
 
 }
 

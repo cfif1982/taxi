@@ -16,11 +16,11 @@ type RouteRepositoryInterface interface {
 	// добавить маршрут
 	AddRoute(route *routes.Route) error
 
-	// Редактировать маршрут
-	EditRoute(route *routes.Route) error
+	// Сохранить маршрут
+	SaveRoute(route *routes.Route) error
 
 	// Удалить маршрут
-	DeleteRoute(route *routes.Route) error
+	DeleteRoute(id uuid.UUID) error
 
 	// Найти маршрут по id
 	GetRouteById(id uuid.UUID) (*routes.Route, error)

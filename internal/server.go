@@ -10,7 +10,10 @@ import (
 	"github.com/cfif1982/taxi/pkg/logger"
 	"github.com/go-chi/chi/v5"
 
+	driversHandler "github.com/cfif1982/taxi/internal/application/drivers/handlers"
 	routesHandler "github.com/cfif1982/taxi/internal/application/routes/handlers"
+
+	driversInfra "github.com/cfif1982/taxi/internal/infrastructure/drivers"
 	routesInfra "github.com/cfif1982/taxi/internal/infrastructure/routes"
 )
 
@@ -40,23 +43,25 @@ func (s *Server) Run(serverAddr string) error {
 	routeRepo, err := routesInfra.NewPostgresRepository(ctx, databaseDSN, s.logger)
 
 	if err != nil {
-		s.logger.Fatal("can't initialize postgres route DB: " + err.Error())
+		s.logger.Fatal("can't initialize postgres for routes DB: " + err.Error())
 	} else {
-		s.logger.Info("postgres route DB initialized")
+		s.logger.Info("postgres for routes DB initialized")
 	}
 
-	// // Создаем репозиторий для работы с водителями
-	// driverRepo, err := driversInfra.NewPostgresRepository(ctx, databaseDSN, s.logger)
+	// Создаем репозиторий для работы с водителями
+	driverRepo, err := driversInfra.NewPostgresRepository(ctx, databaseDSN, s.logger)
 
-	// if err != nil {
-	// 	s.logger.Fatal("can't initialize postgres driver DB: " + err.Error())
-	// } else {
-	// 	s.logger.Info("postgres driver DB initialized")
-	// }
+	if err != nil {
+		s.logger.Fatal("can't initialize postgres for drivers DB: " + err.Error())
+	} else {
+		s.logger.Info("postgres for drivers DB initialized")
+	}
 
-	// создаем хндлер маршрута и передаем ему нужную БД
+	// создаем хэндлер маршрута и передаем ему нужную БД
 	routeHandler := routesHandler.NewHandler(routeRepo, s.logger)
-	//********************************************************
+
+	// создаем хэндлер водителя
+	driverHandler := driversHandler.NewHandler(driverRepo, s.logger)
 
 	// создаем роутер
 	routerChi := chi.NewRouter()
@@ -64,6 +69,9 @@ func (s *Server) Run(serverAddr string) error {
 	// назначаем middleware
 	routerChi.Use(middlewares.GzipCompressMiddleware)
 	routerChi.Use(middlewares.GzipDecompressMiddleware)
+
+	// назначаем ручки для водителя
+	s.SetDriverHandlers(routerChi, driverHandler)
 
 	// назначаем ручки для admin
 	s.SetAdminHandlers(routerChi, routeHandler)
@@ -82,4 +90,14 @@ func (s *Server) SetAdminHandlers(router *chi.Mux, handler *routesHandler.Handle
 	router.Post(`/api/admin/route`, middlewares.AdminAuthMiddleware(handler.AddRoute()))
 	router.Get(`/api/admin/route`, middlewares.AdminAuthMiddleware(handler.GetRoute()))
 	router.Put(`/api/admin/route`, middlewares.AdminAuthMiddleware(handler.EditRoute()))
+	router.Delete(`/api/admin/route`, middlewares.AdminAuthMiddleware(handler.DeleteRoute()))
+}
+
+// назначаем ручки для водителя
+func (s *Server) SetDriverHandlers(router *chi.Mux, handler *driversHandler.Handler) {
+
+	// router.Get(`/api/driver/start`, handler.Start())
+	router.Post(`/api/driver/registration`, handler.Registration())
+	router.Post(`/api/driver/login`, handler.DriverLogin())
+	router.Put(`/api/driver/balance`, handler.IncreaseBalance())
 }

@@ -33,7 +33,7 @@
 
 Накопительная система лояльности «Гофермарт» должна предоставлять следующие HTTP-хендлеры:
 
-- `POST /api/driver/register` — регистрация водителя;
+- `POST /api/driver/registration` — регистрация водителя;
 - `POST /api/driver/login` — аутентификация водителя;
 - `GET /api/driver/balance` — получение текущего баланса счёта водителя;
 - `POST /api/driver/balance` — пополнение текущего баланса счёта водителя;
@@ -69,7 +69,7 @@
 
 #### **Регистрация водителя**
 
-Хендлер: `POST /api/driver/register`.
+Хендлер: `POST /api/driver/registration`.
 
 Регистрация производится по паре логин/пароль. Каждый логин должен быть уникальным.
 После успешной регистрации должна происходить автоматическая аутентификация водителя.
@@ -81,8 +81,9 @@ POST /api/driver/register HTTP/1.1
 Content-Type: application/json
 
 {
-	"login": "<login>",
-	"password": "<password>"
+	"telephone": "<telephone>",
+	"password": "<password>",
+	"name": "<name>"
 }
 ```
 
@@ -106,7 +107,7 @@ POST /api/driver/login HTTP/1.1
 Content-Type: application/json
 
 {
-	"login": "<login>",
+	"telephone": "<telephone>",
 	"password": "<password>"
 }
 ```
@@ -151,7 +152,7 @@ Content-Length: 0
 
 #### **Пополнение баланса водителя**
 
-Хендлер: `POST /api/driver/balance`.
+Хендлер: `PUT /api/driver/balance`.
 
 Хендлер доступен только авторизованному пользователю. В ответе должны содержаться данные о текущем балансе.
 
@@ -159,11 +160,12 @@ Content-Length: 0
 
 ```
 
-POST /api/driver/balance HTTP/1.1
+PUT /api/driver/balance HTTP/1.1
 Content-Type: application/json
 
 {
-"summa": 150,
+"telephone": "89275656981",
+"summa": 150
 }
 
 ```

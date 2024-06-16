@@ -1,18 +1,24 @@
 package drivers
 
-// "github.com/google/uuid"
+import (
+	"errors"
+
+	"github.com/google/uuid"
+)
 
 // список возможных шибок
-// var (
-// 	ErrLinkNotFound    = errors.New("link not found")
-// 	ErrKeyAlreadyExist = errors.New("key already exist")
-// 	ErrURLAlreadyExist = errors.New("url already exist")
-// )
+var (
+	ErrTelephoneAlreadyExist = errors.New("telephone already exist")
+	ErrWrongPassword         = errors.New("wrong login or password")
+)
 
 // структура для хранения водителя
 type Driver struct {
-	id        int
-	fio       string
+	id        uuid.UUID
+	routeID   uuid.UUID
+	telephone string
+	password  string
+	name      string
 	latitude  uint64
 	longitude uint64
 	balance   int
@@ -20,47 +26,57 @@ type Driver struct {
 
 // создаем новый объект
 // нужна для использвания в других пакетах
-func NewDriver(id int, fio string, latitude, longitude uint64, balance int) (*Driver, error) {
+func NewDriver(id, routeID uuid.UUID, telephone, name, password string, balance int) (*Driver, error) {
 	return &Driver{
 		id:        id,
-		fio:       fio,
-		latitude:  latitude,
-		longitude: longitude,
+		routeID:   routeID,
+		telephone: telephone,
+		name:      name,
+		password:  password,
 		balance:   balance,
 	}, nil
 }
 
-// Создаем новую ССЫЛКУ
-func CreateDriver(fio string) (*Driver, error) {
+// Создаем водителя
+func CreateDriver(routeID uuid.UUID, telephone, name, password string) (*Driver, error) {
 
-	return NewDriver(0, fio, 0, 0, 0)
+	return NewDriver(uuid.New(), routeID, telephone, name, password, 0)
 }
 
-// // генерируем key
-// func generateKey() string {
+// возвращщаем поле ID
+func (d *Driver) IncreaseBalance(summa int) error {
 
-// 	// генерируем случайный код типа string
-// 	uuid := uuid.NewString()[:8]
+	d.balance += summa
 
-// 	return uuid
-// }
+	return nil
+}
 
-// // возвращщаем поле key
-// func (l *Link) Key() string {
-// 	return l.key
-// }
+// возвращщаем поле ID
+func (d *Driver) ID() uuid.UUID {
+	return d.id
+}
 
-// // возвращщаем поле URL
-// func (l *Link) URL() string {
-// 	return l.url
-// }
+// возвращщаем поле routeID
+func (d *Driver) RouteID() uuid.UUID {
+	return d.routeID
+}
 
-// // возвращщаем поле UserID
-// func (l *Link) UserID() int {
-// 	return l.userID
-// }
+// возвращщаем поле telephone
+func (d *Driver) Telephone() string {
+	return d.telephone
+}
 
-// // возвращщаем поле deletedFlag
-// func (l *Link) DeletedFlag() bool {
-// 	return l.deletedFlag
-// }
+// возвращщаем поле name
+func (d *Driver) Name() string {
+	return d.name
+}
+
+// возвращщаем поле password
+func (d *Driver) Password() string {
+	return d.password
+}
+
+// возвращщаем поле balance
+func (d *Driver) Balance() int {
+	return d.balance
+}

@@ -152,8 +152,8 @@ func (r *PostgresRepository) AddRoute(route *routes.Route) error {
 	return nil
 }
 
-// Редактировать маршрут
-func (r *PostgresRepository) EditRoute(route *routes.Route) error {
+// Сохранить маршрут
+func (r *PostgresRepository) SaveRoute(route *routes.Route) error {
 
 	// создаю контекст для запроса
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -170,15 +170,14 @@ func (r *PostgresRepository) EditRoute(route *routes.Route) error {
 }
 
 // Удалить маршрут
-// QUESTION: для удаления достаточно предать id удаляемого объекта? или нужно передавать всё-равно сам объект?
-func (r *PostgresRepository) DeleteRoute(route *routes.Route) error {
+func (r *PostgresRepository) DeleteRoute(id uuid.UUID) error {
 
 	// создаю контекст для запроса
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := "DELETE FROM routes WHERE id=$1"
-	_, err := r.db.ExecContext(ctx, query, route.ID())
+	_, err := r.db.ExecContext(ctx, query, id)
 
 	if err != nil {
 		return err
@@ -207,7 +206,7 @@ func (r *PostgresRepository) GetRouteById(id uuid.UUID) (*routes.Route, error) {
 		return nil, err
 	}
 
-	// создаем объект ссылку и возвращаем ее
+	// создаем маршрут и возвращаем его
 	route, err := routes.NewRoute(id, name, points)
 
 	if err != nil {
