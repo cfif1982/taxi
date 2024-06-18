@@ -69,6 +69,7 @@ func (l *Logger) Info(messages ...string) {
 
 }
 
+// QUESTION: в каких случаях вызвать fatal?
 // выводим сообщение уровня FATAL
 func (l *Logger) Fatal(message string) {
 	l.logger.Fatal(message)

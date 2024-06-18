@@ -36,7 +36,8 @@ func (h *Handler) EditRoute() http.Handler {
 		// читаем тело запроса
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			h.logger.Fatal(err.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		// получаем DTO из запроса
@@ -56,8 +57,7 @@ func (h *Handler) EditRoute() http.Handler {
 		err = h.routeRepo.SaveRoute(route)
 
 		if err != nil {
-			h.logger.Info(err.Error())
-			rw.WriteHeader(http.StatusInternalServerError)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

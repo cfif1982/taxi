@@ -2,6 +2,7 @@ package drivers
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -10,43 +11,79 @@ import (
 var (
 	ErrTelephoneAlreadyExist = errors.New("telephone already exist")
 	ErrWrongPassword         = errors.New("wrong login or password")
+	ErrCookieError           = errors.New("cookie error")
+	ErrDriverIsNotAuthorized = errors.New("driver is not authorized")
+	ErrDriverIsNotFound      = errors.New("driver is not found")
+	ErrInsufficientFunds     = errors.New("insufficient funds ") // недостаточно средств на балансе
 )
 
 // структура для хранения водителя
 type Driver struct {
-	id        uuid.UUID
-	routeID   uuid.UUID
-	telephone string
-	password  string
-	name      string
-	latitude  uint64
-	longitude uint64
-	balance   int
+	id           uuid.UUID
+	routeID      uuid.UUID
+	telephone    string
+	password     string
+	name         string
+	latitude     float64
+	longitude    float64
+	balance      int
+	lastPaidDate time.Time
 }
 
 // создаем новый объект
 // нужна для использвания в других пакетах
-func NewDriver(id, routeID uuid.UUID, telephone, name, password string, balance int) (*Driver, error) {
+func NewDriver(id, routeID uuid.UUID, telephone, name, password string, balance int, lastPaidDate time.Time) (*Driver, error) {
 	return &Driver{
-		id:        id,
-		routeID:   routeID,
-		telephone: telephone,
-		name:      name,
-		password:  password,
-		balance:   balance,
+		id:           id,
+		routeID:      routeID,
+		telephone:    telephone,
+		name:         name,
+		password:     password,
+		balance:      balance,
+		lastPaidDate: lastPaidDate,
 	}, nil
 }
 
 // Создаем водителя
 func CreateDriver(routeID uuid.UUID, telephone, name, password string) (*Driver, error) {
 
-	return NewDriver(uuid.New(), routeID, telephone, name, password, 0)
+	var zeroTime time.Time
+	// zeroTime := time.Now()
+
+	return NewDriver(uuid.New(), routeID, telephone, name, password, 0, zeroTime)
 }
 
-// возвращщаем поле ID
+// изменить координаты
+func (d *Driver) ChangeGPS(latitude float64, longitude float64) error {
+
+	d.latitude = latitude
+	d.longitude = longitude
+
+	return nil
+}
+
+// увеличить баланс
 func (d *Driver) IncreaseBalance(summa int) error {
 
 	d.balance += summa
+
+	return nil
+}
+
+// Уменьшить баланс
+func (d *Driver) ReduceBalance(summa int) error {
+
+	// Если недостаточно средств - ошибка
+	if d.balance < summa {
+		return ErrInsufficientFunds
+	}
+
+	d.balance -= summa
+
+	// изменяем дату последней оплаты на сегодняшнюю дату
+	currentDate := time.Now()
+
+	d.lastPaidDate = currentDate
 
 	return nil
 }
@@ -79,4 +116,19 @@ func (d *Driver) Password() string {
 // возвращщаем поле balance
 func (d *Driver) Balance() int {
 	return d.balance
+}
+
+// возвращщаем поле lastPaidDate
+func (d *Driver) LastPaidDate() time.Time {
+	return d.lastPaidDate
+}
+
+// возвращщаем поле latitude
+func (d *Driver) Latitude() float64 {
+	return d.latitude
+}
+
+// возвращщаем поле longitude
+func (d *Driver) Longitude() float64 {
+	return d.longitude
 }

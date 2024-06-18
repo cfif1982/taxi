@@ -26,7 +26,8 @@ func (h *Handler) DeleteRoute() http.Handler {
 		// читаем тело запроса
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			h.logger.Fatal(err.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		if err = json.Unmarshal(body, &requestDTO); err != nil {
@@ -38,8 +39,7 @@ func (h *Handler) DeleteRoute() http.Handler {
 		err = h.routeRepo.DeleteRoute(requestDTO.RouteId)
 
 		if err != nil {
-			h.logger.Info(err.Error())
-			rw.WriteHeader(http.StatusInternalServerError)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

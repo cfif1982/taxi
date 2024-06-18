@@ -39,7 +39,7 @@ func (h *Handler) AdminLogin() http.HandlerFunc {
 		// читаем тело запроса
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			h.logger.Fatal(err.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
 
 		if err = json.Unmarshal(body, &adminLoginBodyRequest); err != nil {

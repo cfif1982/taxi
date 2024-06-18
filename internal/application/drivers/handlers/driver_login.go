@@ -7,6 +7,7 @@ import (
 
 	"github.com/cfif1982/taxi/internal/domain/drivers"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 const DriverTokenEXP = time.Hour * 3         // время жизни токена водителя
@@ -17,7 +18,7 @@ const SecretKEY = "supersecretkey"           // ключ для генераци
 // одно пользовательское DriverID
 type Claims struct {
 	jwt.RegisteredClaims
-	DriverID string
+	DriverID uuid.UUID
 }
 
 type DriverLoginBodyRequest struct {
@@ -60,7 +61,7 @@ func (h *Handler) DriverLogin() http.HandlerFunc {
 		}
 
 		// генерируем куку
-		cookie := createDriverCookie(driver.ID().String())
+		cookie := createDriverCookie(driver.ID())
 
 		// устанавливаем созданную куку в http
 		http.SetCookie(rw, cookie)
@@ -74,7 +75,7 @@ func (h *Handler) DriverLogin() http.HandlerFunc {
 }
 
 // создаем куку водителя
-func createDriverCookie(driverID string) *http.Cookie {
+func createDriverCookie(driverID uuid.UUID) *http.Cookie {
 
 	// строим строку токена для куки
 	token, _ := buildJWTString(driverID)
@@ -90,7 +91,7 @@ func createDriverCookie(driverID string) *http.Cookie {
 }
 
 // строим строку для токена
-func buildJWTString(driverID string) (string, error) {
+func buildJWTString(driverID uuid.UUID) (string, error) {
 
 	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{

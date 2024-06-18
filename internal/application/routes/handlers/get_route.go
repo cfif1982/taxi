@@ -40,7 +40,7 @@ func (h *Handler) GetRoute() http.Handler {
 		// читаем тело запроса
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			h.logger.Fatal(err.Error())
+			h.logger.Info(err.Error())
 		}
 
 		if err = json.Unmarshal(body, &requestDTO); err != nil {
@@ -52,8 +52,7 @@ func (h *Handler) GetRoute() http.Handler {
 		route, err := h.routeRepo.GetRouteById(requestDTO.RouteId)
 
 		if err != nil {
-			h.logger.Info(err.Error())
-			rw.WriteHeader(http.StatusInternalServerError)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -93,7 +92,7 @@ func (h *Handler) GetRoute() http.Handler {
 		// выводим ответ сервера
 		_, err = rw.Write([]byte(answerText))
 		if err != nil {
-			h.logger.Fatal(err.Error())
+			h.logger.Info(err.Error())
 		}
 	}
 

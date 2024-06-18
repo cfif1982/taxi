@@ -25,8 +25,7 @@ func (h *Handler) GetAllRoutes() http.Handler {
 		routes, err := h.routeRepo.GetAllRoutes()
 
 		if err != nil {
-			h.logger.Info(err.Error())
-			rw.WriteHeader(http.StatusInternalServerError)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -57,7 +56,8 @@ func (h *Handler) GetAllRoutes() http.Handler {
 		// выводим ответ сервера
 		_, err = rw.Write([]byte(answerText))
 		if err != nil {
-			h.logger.Fatal(err.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 

@@ -33,7 +33,8 @@ func (h *Handler) AddRoute() http.Handler {
 		// читаем тело запроса
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			h.logger.Fatal(err.Error())
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		if err = json.Unmarshal(body, &routeDTO); err != nil {

@@ -5,9 +5,16 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/cfif1982/taxi/internal/base"
 	"github.com/cfif1982/taxi/internal/domain/drivers"
 	"github.com/cfif1982/taxi/pkg/logger"
+	"github.com/google/uuid"
 )
+
+// создаю свой тип для ключей контекста. Нужно хранить id авторизованного водителя
+type ctxKey string
+
+const KeyDriverID ctxKey = "driver_id" //  ключ в контексте для поля driver_id
 
 // Интерфейс репозитория
 type DriverRepositoryInterface interface {
@@ -18,21 +25,26 @@ type DriverRepositoryInterface interface {
 	// найти водителя по телефону
 	GetDriverByTelephone(telephone string) (*drivers.Driver, error)
 
+	// найти водителя по id
+	GetDriverByID(id uuid.UUID) (*drivers.Driver, error)
+
 	// сохранить водителя
 	SaveDriver(driver *drivers.Driver) error
 }
 
 // структура хэндлера
 type Handler struct {
-	driverRepo DriverRepositoryInterface
-	logger     *logger.Logger
+	driverRepo        DriverRepositoryInterface // репозиторий
+	activeDriversBase *base.ActiveDriversBase   // база активных водителей
+	logger            *logger.Logger            // логгер
 }
 
 // создаем новый хэндлер
-func NewHandler(driverRepo DriverRepositoryInterface, logger *logger.Logger) *Handler {
+func NewHandler(driverRepo DriverRepositoryInterface, activeDriversBase *base.ActiveDriversBase, logger *logger.Logger) *Handler {
 	return &Handler{
-		driverRepo: driverRepo,
-		logger:     logger,
+		driverRepo:        driverRepo,
+		activeDriversBase: activeDriversBase,
+		logger:            logger,
 	}
 }
 
@@ -48,7 +60,8 @@ func readRequestToDTO[T any](h *Handler, req *http.Request, dto *T) error {
 	// читаем тело запроса
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		h.logger.Fatal(err.Error())
+		h.logger.Info(err.Error())
+		return err
 	}
 
 	err = json.Unmarshal(body, dto)

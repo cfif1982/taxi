@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS drivers(
 	telephone VARCHAR(11) UNIQUE NOT NULL,
   password TEXT,
   name TEXT,
-  balance int
+  balance int,
+  last_paid_date DATE
 );
 -- +goose StatementEnd
 

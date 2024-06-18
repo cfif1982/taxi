@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cfif1982/taxi/internal/application/middlewares"
+	"github.com/cfif1982/taxi/internal/base"
 	"github.com/cfif1982/taxi/pkg/logger"
 	"github.com/go-chi/chi/v5"
 
@@ -57,11 +58,18 @@ func (s *Server) Run(serverAddr string) error {
 		s.logger.Info("postgres for drivers DB initialized")
 	}
 
+	// инициализация базы для хранения активных водителей
+	activeDriversBase, err := base.CreateActiveDriversBase(s.logger)
+	if err != nil {
+		s.logger.Fatal("can't initialize active drivers base: " + err.Error())
+	}
+
 	// создаем хэндлер маршрута и передаем ему нужную БД
 	routeHandler := routesHandler.NewHandler(routeRepo, s.logger)
 
 	// создаем хэндлер водителя
-	driverHandler := driversHandler.NewHandler(driverRepo, s.logger)
+	// передаем ему слайс активных водителей
+	driverHandler := driversHandler.NewHandler(driverRepo, activeDriversBase, s.logger)
 
 	// создаем роутер
 	routerChi := chi.NewRouter()
@@ -96,8 +104,9 @@ func (s *Server) SetAdminHandlers(router *chi.Mux, handler *routesHandler.Handle
 // назначаем ручки для водителя
 func (s *Server) SetDriverHandlers(router *chi.Mux, handler *driversHandler.Handler) {
 
-	// router.Get(`/api/driver/start`, handler.Start())
 	router.Post(`/api/driver/registration`, handler.Registration())
 	router.Post(`/api/driver/login`, handler.DriverLogin())
 	router.Put(`/api/driver/balance`, handler.IncreaseBalance())
+	router.Get(`/api/driver/start`, middlewares.DriverAuthMiddleware(handler.Start()))
+	router.Get(`/api/driver/balance`, middlewares.DriverAuthMiddleware(handler.GetBalance()))
 }

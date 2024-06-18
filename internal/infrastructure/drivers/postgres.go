@@ -78,10 +78,13 @@ func (r *PostgresRepository) AddDriver(driver *drivers.Driver) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := "INSERT INTO drivers(id, route_id, telephone, name, password, balance) VALUES ($1, $2, $3, $4, $5, $6)"
-	_, err := r.db.ExecContext(ctx, query, driver.ID(), driver.RouteID(), driver.Telephone(), driver.Name(), driver.Password(), driver.Balance())
+	query := "INSERT INTO drivers(id, route_id, telephone, name, password, balance, last_paid_date) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+	_, err := r.db.ExecContext(ctx, query,
+		driver.ID(), driver.RouteID(), driver.Telephone(),
+		driver.Name(), driver.Password(), driver.Balance(),
+		driver.LastPaidDate())
 	if err != nil {
-		// проверяем ошибку на предмет вставки маршрута с названием, которое уже есть в БД
+		// проверяем ошибку на предмет вставки водителя с телефоном, которое уже есть в БД
 		// создаем объект *pgconn.PgError - в нем будет храниться код ошибки из БД
 		var pgErr *pgconn.PgError
 
@@ -106,22 +109,55 @@ func (r *PostgresRepository) GetDriverByTelephone(telephone string) (*drivers.Dr
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := "SELECT id, route_id, name, password, balance FROM drivers WHERE telephone=$1"
+	query := "SELECT id, route_id, name, password, balance, last_paid_date FROM drivers WHERE telephone=$1"
 	row := r.db.QueryRowContext(ctx, query, telephone)
 
 	// в эту переменную будет сканиться результат запроса
 	var id, route_id uuid.UUID
 	var name, password string
 	var balance int
+	var lastPaidDate time.Time
 
-	err := row.Scan(&id, &route_id, &name, &password, &balance)
+	err := row.Scan(&id, &route_id, &name, &password, &balance, &lastPaidDate)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// создаем водителя и возвращаем его
-	driver, err := drivers.NewDriver(id, route_id, telephone, name, password, balance)
+	driver, err := drivers.NewDriver(id, route_id, telephone, name, password, balance, lastPaidDate)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return driver, nil
+}
+
+// Найти водителя по id
+func (r *PostgresRepository) GetDriverByID(id uuid.UUID) (*drivers.Driver, error) {
+
+	// создаю контекст для запроса
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := "SELECT route_id, name, password, telephone, balance, last_paid_date FROM drivers WHERE id=$1"
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	// в эту переменную будет сканиться результат запроса
+	var route_id uuid.UUID
+	var name, password, telephone string
+	var balance int
+	var lastPaidDate time.Time
+
+	err := row.Scan(&route_id, &name, &password, &telephone, &balance, &lastPaidDate)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// создаем водителя и возвращаем его
+	driver, err := drivers.NewDriver(id, route_id, telephone, name, password, balance, lastPaidDate)
 
 	if err != nil {
 		return nil, err
@@ -137,8 +173,11 @@ func (r *PostgresRepository) SaveDriver(driver *drivers.Driver) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := "UPDATE drivers SET route_id=$1, name=$2, telephone=$3, password=$4, balance=$5 WHERE id=$6"
-	_, err := r.db.ExecContext(ctx, query, driver.RouteID(), driver.Name(), driver.Telephone(), driver.Password(), driver.Balance(), driver.ID())
+	query := "UPDATE drivers SET route_id=$1, name=$2, telephone=$3, password=$4, balance=$5, last_paid_date=$6 WHERE id=$7"
+	_, err := r.db.ExecContext(ctx, query,
+		driver.RouteID(), driver.Name(), driver.Telephone(),
+		driver.Password(), driver.Balance(), driver.LastPaidDate(),
+		driver.ID())
 
 	if err != nil {
 		return err
