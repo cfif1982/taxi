@@ -1,6 +1,6 @@
 module github.com/cfif1982/taxi
 
-go 1.22.1
+go 1.21.11
 
 require (
 	github.com/go-chi/chi/v5 v5.0.12

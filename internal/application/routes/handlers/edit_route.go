@@ -53,6 +53,11 @@ func (h *Handler) EditRoute() http.Handler {
 		// создаем объект маршрута по данным из запроса
 		route, err := routes.NewRoute(routeDTO.ID, routeDTO.Name, string(routePointsString))
 
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		// запрос к БД - сохраняем измененные данные маршрута
 		err = h.routeRepo.SaveRoute(route)
 

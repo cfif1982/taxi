@@ -9,7 +9,7 @@ import (
 )
 
 type DeleteRouteRequestDTO struct {
-	RouteId uuid.UUID `json:"route_id"`
+	RouteID uuid.UUID `json:"route_id"`
 }
 
 // Обрабатываем запрос на получение списка всех маршрутов. В элементах этого списка не нужен список точек маршрута,
@@ -36,7 +36,7 @@ func (h *Handler) DeleteRoute() http.Handler {
 		}
 
 		// запрос к БД - удаляем маршрут
-		err = h.routeRepo.DeleteRoute(requestDTO.RouteId)
+		err = h.routeRepo.DeleteRoute(requestDTO.RouteID)
 
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

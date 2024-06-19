@@ -58,8 +58,8 @@ func (s *Server) Run(serverAddr string) error {
 		s.logger.Info("postgres for drivers DB initialized")
 	}
 
-	// инициализация базы для хранения активных водителей
-	activeDriversBase, err := base.CreateActiveDriversBase(s.logger)
+	// инициализация базы для хранения подключенных водителей
+	connectedDriversBase, err := base.CreateConnectedDriversBase(s.logger)
 	if err != nil {
 		s.logger.Fatal("can't initialize active drivers base: " + err.Error())
 	}
@@ -68,8 +68,8 @@ func (s *Server) Run(serverAddr string) error {
 	routeHandler := routesHandler.NewHandler(routeRepo, s.logger)
 
 	// создаем хэндлер водителя
-	// передаем ему слайс активных водителей
-	driverHandler := driversHandler.NewHandler(driverRepo, activeDriversBase, s.logger)
+	// передаем ему слайс подключенных водителей
+	driverHandler := driversHandler.NewHandler(driverRepo, connectedDriversBase, s.logger)
 
 	// создаем роутер
 	routerChi := chi.NewRouter()
@@ -84,9 +84,12 @@ func (s *Server) Run(serverAddr string) error {
 	// назначаем ручки для admin
 	s.SetAdminHandlers(routerChi, routeHandler)
 
+	// запускаем обработку базы подключенных водителей
+	go connectedDriversBase.HandleBase()
+
 	s.logger.Info("Starting server", "addr", serverAddr)
 
-	// запуск сервера на нужно адресе и с нужным роутером
+	// запуск сервера на нужном адресе и с нужным роутером
 	return http.ListenAndServe(serverAddr, routerChi)
 }
 

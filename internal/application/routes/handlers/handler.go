@@ -23,7 +23,7 @@ type RouteRepositoryInterface interface {
 	DeleteRoute(id uuid.UUID) error
 
 	// Найти маршрут по id
-	GetRouteById(id uuid.UUID) (*routes.Route, error)
+	GetRouteByID(id uuid.UUID) (*routes.Route, error)
 }
 
 // структура хэндлера

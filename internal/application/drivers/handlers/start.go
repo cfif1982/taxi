@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"math"
 	"net/http"
 	"time"
 
@@ -15,14 +14,11 @@ import (
 	"github.com/cfif1982/taxi/pkg/logger"
 )
 
-const SendDataPeriod = time.Second * 2 // частота отсылки данных водителю
-const ConnectionPingPeriod = 5         // время задержки данных от водителя при котором соединение считается разорванным
-
-// // DTO для получения координат от водителя
-// type gpsDTO struct {
-// 	Latitude  float64 `json:"latitude"`
-// 	Longitude float64 `json:"longitude"`
-// }
+// структура GPS
+type GPS struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
 
 // переменная нужна для создания websocket
 var upgrader = websocket.Upgrader{
@@ -92,13 +88,7 @@ func (h *Handler) Start() http.HandlerFunc {
 		// Если всё нормально, то создаем соединение и начинаем работать
 		//***************************************************************
 		//***************************************************************
-
-		receiveFromDriverCH := make(chan []byte) // Создаем канал для получения данные от водителя
-		done := make(chan bool)                  // Создаем сигнальный канал для закрытия websocket
-		var lastMessageReceivedTime time.Time    // время получения последнего сообщения от водителя. Нужно для проверки состояния соединения
-
-		// var driverGPS gpsDTO // храним полученные от водителя координаты
-
+		// createConnection(rw, req)
 		// создаем соединение websocket
 		conn, err := upgrader.Upgrade(rw, req, nil)
 
@@ -110,122 +100,57 @@ func (h *Handler) Start() http.HandlerFunc {
 
 		h.logger.Info("Start websocket:")
 
-		lastMessageReceivedTime = time.Now() // перед началом работы инициализируем время получения сообщения от водителя
+		connectedDriver := base.ConnectedDriver{
+			ID:                 driver.ID(),
+			SendDataToDriverCH: make(chan []byte),
+			DoneCH:             make(chan struct{}),
+		}
 
 		// читаем данные от водителя
 		// горутина будет закрываться при закрытии websocket
-		go readDataFromDriver(conn, h.logger, receiveFromDriverCH)
+		go readDataFromDriver(conn, h.logger, &connectedDriver, h.connectedDriversBase.ReceiveDataFromDriverCH)
 
-		// Посылаем данные водителю с заданной периодичностью
-		// Канал done закрывается по истечении ConnectionPingPeriod секунд.
-		// Этот канал нужен для завершения цикла ожидания данных из горутины readDataFromDriver
-		// В этом случае и сама горутина закрывается
-		go sendDataToDriver(conn, h.activeDriversBase, h.logger, done, &lastMessageReceivedTime)
-
-		// горутина проверки состояния соединения
-		// go checkConnectionState(&lastMessageReceivedTime, h.logger, done)
-
-		// Ожидаем результат из канала от водителя
+		// здесь нужен бесконечный цикл, т.к. при завершении функции, websocket закрывается
+		// но нам нужен сигнал о том, что мы действительно хотим закрыть сокет
+		// поэтому ждем этот сигнал чеерез канал водителя
+		// ну и до кучи чтобы еще одну горутину не делать - тут же отсылаем данные в сокет
+		// данные для этого получаем через канал водителя из базы подключенных водителей
 		for {
 			select {
-			case <-done: // закрытие канала done
+			case <-connectedDriver.DoneCH: // закрытие канала done
 				h.logger.Info("Close websocket")
 				return
-			case receivedDataFromDriver, ok := <-receiveFromDriverCH: // Ожидаем результат из канала от водителя
-				if !ok {
-					h.logger.Info("Channel receiveFromDriverCH closed")
+			case data := <-connectedDriver.SendDataToDriverCH:
+				// отправляем данные в сокет
+				err = conn.WriteMessage(websocket.TextMessage, data)
+				if err != nil {
+					h.logger.Info("Ошибка отправки данных:", err.Error())
 					return
 				}
-
-				lastMessageReceivedTime = time.Now()
-
-				h.activeDriversBase.UpdateGPSData(receivedDataFromDriver)
-
-				// err = json.Unmarshal(receivedDataFromDriver, &driverGPS)
-
-				// // если получили правильные данные, то изменяем их в массиве активных водителей
-				// if err != nil {
-				// 	h.logger.Info("Неверный формат данных GPS от водителя:", err.Error())
-				// } else {
-				// 	// меняем GPS данные у водителя
-				// 	err = driver.ChangeGPS(driverGPS.Latitude, driverGPS.Longitude)
-
-				// 	if err == nil {
-				// 		// обновляем водителя в мапе
-				// 		h.activeDriversBase.UpdateGPSData(receivedDataFromDriver)
-				// 	}
-				// }
 			}
+
 		}
 	}
 
 	return http.HandlerFunc(fn)
 }
 
-// Посылаем данные водителю с заданной периодичностью
-func sendDataToDriver(
-	conn *websocket.Conn,
-	arrActiveDrivers *base.ActiveDriversBase,
-	logger *logger.Logger,
-	done chan bool,
-	lastMessageTime *time.Time) {
+// func createConnection(rw http.ResponseWriter, req *http.Request){
 
-	ticker := time.NewTicker(SendDataPeriod)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-
-			// получаем разницу между временем последнего сообщения от водителя
-			// эту разницу в секундах округляем до целого значения
-			diff := int(math.Round(time.Now().Sub(*lastMessageTime).Seconds()))
-
-			// Если разница больше ConnectionPingPeriod, то закрываем соединение
-			// Закрываем канал done. Это приведет к завершению цикла ожидания сообщений от водителя
-			// и там же закроется соединение
-			if diff > ConnectionPingPeriod {
-				close(done)
-				return
-			}
-
-			logger.Info("тик таймера")
-			sendData := []sendDataToDriverDTO{} // слайс для хранения отправляемых данных
-
-			// сохраняем отправляемые данные в DTO
-			for _, v := range *arrActiveDrivers {
-				sendData = append(
-					sendData,
-					sendDataToDriverDTO{
-						DriverID:  v.ID(),
-						Latitude:  v.Latitude(),
-						Longitude: v.Longitude(),
-					})
-			}
-
-			// маршалим отправляемый текст
-			sendText, err := json.Marshal(sendData)
-
-			// отправляем текст
-			err = conn.WriteMessage(websocket.TextMessage, []byte(sendText))
-			if err != nil {
-				logger.Info("Ошибка отправки данных:", err.Error())
-				return
-			}
-		}
-	}
-}
+// }
 
 // читаем данные от водителя
 func readDataFromDriver(
 	conn *websocket.Conn,
 	logger *logger.Logger,
-	ch chan []byte) {
+	connectedDriver *base.ConnectedDriver,
+	receiveDataFromDriverCH chan *base.ConnectedDriver) {
 
 	// Чтение сообщений от клиента
 	for {
 		// Чтение сообщения
 		_, message, err := conn.ReadMessage()
+
 		if err != nil {
 			// уточняем ошибку
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -237,8 +162,22 @@ func readDataFromDriver(
 			return
 		}
 
+		// структура для хранения GPS от водителя
+		var gps GPS
+		err = json.Unmarshal(message, &gps)
+
+		if err != nil {
+			logger.Info("Неверный формат данных от водителя", err.Error())
+			break
+		}
+
+		// сохраняем данные GPS
+		connectedDriver.Latitude = gps.Latitude
+		connectedDriver.Longitude = gps.Longitude
+		connectedDriver.ReceivedDataTime = time.Now()
+
 		// отправляем данные в канал
-		ch <- message
+		receiveDataFromDriverCH <- connectedDriver
 	}
 }
 

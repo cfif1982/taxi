@@ -113,19 +113,19 @@ func (r *PostgresRepository) GetDriverByTelephone(telephone string) (*drivers.Dr
 	row := r.db.QueryRowContext(ctx, query, telephone)
 
 	// в эту переменную будет сканиться результат запроса
-	var id, route_id uuid.UUID
+	var id, routeID uuid.UUID
 	var name, password string
 	var balance int
 	var lastPaidDate time.Time
 
-	err := row.Scan(&id, &route_id, &name, &password, &balance, &lastPaidDate)
+	err := row.Scan(&id, &routeID, &name, &password, &balance, &lastPaidDate)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// создаем водителя и возвращаем его
-	driver, err := drivers.NewDriver(id, route_id, telephone, name, password, balance, lastPaidDate)
+	driver, err := drivers.NewDriver(id, routeID, telephone, name, password, balance, lastPaidDate)
 
 	if err != nil {
 		return nil, err
@@ -145,19 +145,19 @@ func (r *PostgresRepository) GetDriverByID(id uuid.UUID) (*drivers.Driver, error
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	// в эту переменную будет сканиться результат запроса
-	var route_id uuid.UUID
+	var routeID uuid.UUID
 	var name, password, telephone string
 	var balance int
 	var lastPaidDate time.Time
 
-	err := row.Scan(&route_id, &name, &password, &telephone, &balance, &lastPaidDate)
+	err := row.Scan(&routeID, &name, &password, &telephone, &balance, &lastPaidDate)
 
 	if err != nil {
 		return nil, err
 	}
 
 	// создаем водителя и возвращаем его
-	driver, err := drivers.NewDriver(id, route_id, telephone, name, password, balance, lastPaidDate)
+	driver, err := drivers.NewDriver(id, routeID, telephone, name, password, balance, lastPaidDate)
 
 	if err != nil {
 		return nil, err

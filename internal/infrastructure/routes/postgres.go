@@ -187,7 +187,7 @@ func (r *PostgresRepository) DeleteRoute(id uuid.UUID) error {
 }
 
 // Найти маршрут по id
-func (r *PostgresRepository) GetRouteById(id uuid.UUID) (*routes.Route, error) {
+func (r *PostgresRepository) GetRouteByID(id uuid.UUID) (*routes.Route, error) {
 
 	// создаю контекст для запроса
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

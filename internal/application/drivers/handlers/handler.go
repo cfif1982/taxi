@@ -34,17 +34,17 @@ type DriverRepositoryInterface interface {
 
 // структура хэндлера
 type Handler struct {
-	driverRepo        DriverRepositoryInterface // репозиторий
-	activeDriversBase *base.ActiveDriversBase   // база активных водителей
-	logger            *logger.Logger            // логгер
+	driverRepo           DriverRepositoryInterface  // репозиторий
+	connectedDriversBase *base.ConnectedDriversBase // база соединенных водителей
+	logger               *logger.Logger             // логгер
 }
 
 // создаем новый хэндлер
-func NewHandler(driverRepo DriverRepositoryInterface, activeDriversBase *base.ActiveDriversBase, logger *logger.Logger) *Handler {
+func NewHandler(driverRepo DriverRepositoryInterface, connectedDriversBase *base.ConnectedDriversBase, logger *logger.Logger) *Handler {
 	return &Handler{
-		driverRepo:        driverRepo,
-		activeDriversBase: activeDriversBase,
-		logger:            logger,
+		driverRepo:           driverRepo,
+		connectedDriversBase: connectedDriversBase,
+		logger:               logger,
 	}
 }
 

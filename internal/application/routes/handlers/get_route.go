@@ -23,7 +23,7 @@ type GetRouteResponseRouteDTO struct {
 }
 
 type GetRouteRequestDTO struct {
-	RouteId uuid.UUID `json:"route_id"`
+	RouteID uuid.UUID `json:"route_id"`
 }
 
 // Обрабатываем запрос на получение списка всех маршрутов. В элементах этого списка не нужен список точек маршрута,
@@ -49,7 +49,7 @@ func (h *Handler) GetRoute() http.Handler {
 		}
 
 		// запрос к БД - находим данные маршрута
-		route, err := h.routeRepo.GetRouteById(requestDTO.RouteId)
+		route, err := h.routeRepo.GetRouteByID(requestDTO.RouteID)
 
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
