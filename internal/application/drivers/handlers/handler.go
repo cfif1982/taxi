@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/cfif1982/taxi/internal/base"
 	"github.com/cfif1982/taxi/internal/domain/drivers"
 	"github.com/cfif1982/taxi/pkg/logger"
 	"github.com/google/uuid"
@@ -34,17 +33,15 @@ type DriverRepositoryInterface interface {
 
 // структура хэндлера
 type Handler struct {
-	driverRepo           DriverRepositoryInterface  // репозиторий
-	connectedDriversBase *base.ConnectedDriversBase // база соединенных водителей
-	logger               *logger.Logger             // логгер
+	driverRepo DriverRepositoryInterface // репозиторий для водителей
+	logger     *logger.Logger            // логгер
 }
 
 // создаем новый хэндлер
-func NewHandler(driverRepo DriverRepositoryInterface, connectedDriversBase *base.ConnectedDriversBase, logger *logger.Logger) *Handler {
+func NewHandler(driverRepo DriverRepositoryInterface, logger *logger.Logger) *Handler {
 	return &Handler{
-		driverRepo:           driverRepo,
-		connectedDriversBase: connectedDriversBase,
-		logger:               logger,
+		driverRepo: driverRepo,
+		logger:     logger,
 	}
 }
 

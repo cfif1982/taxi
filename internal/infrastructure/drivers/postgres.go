@@ -33,17 +33,8 @@ func NewPostgresRepository(ctx context.Context, databaseDSN string, logger *logg
 		return nil, err
 	}
 
-	// QUESTION: нужно ли здесь пинговать БД для проверки ее доступности? Это нормальная практика?
-	// создаю контекст для пинга
-	// ctx2, cancel2 := context.WithTimeout(ctx, 1*time.Second)
-	// defer cancel2()
-
-	// пингую БД. Если не отвечает, то возвращаю ошибку
-	// if err = db.PingContext(ctx2); err != nil {
-	// 	return nil, err
-	// }
-
 	// начинаю миграцию
+	// Т.к. делаю миграцию, то не нужно пинговать базу
 	logger.Info("Start migrating database")
 
 	if err := goose.SetDialect("postgres"); err != nil {
@@ -125,11 +116,7 @@ func (r *PostgresRepository) GetDriverByTelephone(telephone string) (*drivers.Dr
 	}
 
 	// создаем водителя и возвращаем его
-	driver, err := drivers.NewDriver(id, routeID, telephone, name, password, balance, lastPaidDate)
-
-	if err != nil {
-		return nil, err
-	}
+	driver := drivers.NewDriver(id, routeID, telephone, name, password, balance, lastPaidDate)
 
 	return driver, nil
 }
@@ -157,11 +144,7 @@ func (r *PostgresRepository) GetDriverByID(id uuid.UUID) (*drivers.Driver, error
 	}
 
 	// создаем водителя и возвращаем его
-	driver, err := drivers.NewDriver(id, routeID, telephone, name, password, balance, lastPaidDate)
-
-	if err != nil {
-		return nil, err
-	}
+	driver := drivers.NewDriver(id, routeID, telephone, name, password, balance, lastPaidDate)
 
 	return driver, nil
 }

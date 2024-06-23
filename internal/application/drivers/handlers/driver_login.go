@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
 	"time"
 
@@ -45,13 +44,8 @@ func (h *Handler) DriverLogin() http.HandlerFunc {
 		// либо сделать запрос к БД и по телефону найти водителя (это агрегат) и уже у водителя вызвать метод для получения пароля (Password())?
 		driver, err := h.driverRepo.GetDriverByTelephone(driverRequest.Telephone)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				http.Error(rw, drivers.ErrWrongPassword.Error(), http.StatusUnauthorized)
-				return
-			} else {
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-				return
-			}
+			http.Error(rw, drivers.ErrWrongPassword.Error(), http.StatusUnauthorized)
+			return
 		}
 
 		// Если пароли не совпадают, то алярм

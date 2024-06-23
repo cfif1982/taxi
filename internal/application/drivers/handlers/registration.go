@@ -29,14 +29,10 @@ func (h *Handler) Registration() http.HandlerFunc {
 		}
 
 		// создаем водителя из данных запроса
-		driver, err := drivers.CreateDriver(regDTO.RouteID, regDTO.Telephone, regDTO.Name, regDTO.Password)
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		driver := drivers.CreateDriver(regDTO.RouteID, regDTO.Telephone, regDTO.Name, regDTO.Password)
 
 		// Добавляем водителя в БД
-		err = h.driverRepo.AddDriver(driver)
+		err := h.driverRepo.AddDriver(driver)
 		if err != nil {
 			// Если телефон уже занят
 			if err == drivers.ErrTelephoneAlreadyExist {

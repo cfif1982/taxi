@@ -103,7 +103,6 @@ func (b *ConnectedDriversBase) broadcastDataToAllDrivers() {
 	}
 
 	// получаем строку данных для отправки
-	// driversString, err := json.Marshal(baseCopy)
 	driversString, err := json.Marshal(arrDriverDataDTO)
 
 	if err != nil {

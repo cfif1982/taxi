@@ -88,7 +88,6 @@ func (h *Handler) Start() http.HandlerFunc {
 		// Если всё нормально, то создаем соединение и начинаем работать
 		//***************************************************************
 		//***************************************************************
-		// createConnection(rw, req)
 		// создаем соединение websocket
 		conn, err := upgrader.Upgrade(rw, req, nil)
 
@@ -134,10 +133,6 @@ func (h *Handler) Start() http.HandlerFunc {
 
 	return http.HandlerFunc(fn)
 }
-
-// func createConnection(rw http.ResponseWriter, req *http.Request){
-
-// }
 
 // читаем данные от водителя
 func readDataFromDriver(

@@ -32,11 +32,6 @@ func NewRoute(id uuid.UUID, name, points string) (*Route, error) {
 // Создаем новый маршрут
 func CreateRoute(name, points string) (*Route, error) {
 
-	// для тестирования ошибки - вставка с таким же uuid
-	// id := "849b3e26-1fd4-4e48-825a-e167946aced6"
-	// parsedUUID, _ := uuid.Parse(id)
-	// return NewRoute(parsedUUID, name, points)
-
 	return NewRoute(uuid.New(), name, points)
 
 }

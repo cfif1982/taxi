@@ -32,7 +32,7 @@ type Driver struct {
 
 // создаем новый объект
 // нужна для использвания в других пакетах
-func NewDriver(id, routeID uuid.UUID, telephone, name, password string, balance int, lastPaidDate time.Time) (*Driver, error) {
+func NewDriver(id, routeID uuid.UUID, telephone, name, password string, balance int, lastPaidDate time.Time) *Driver {
 	return &Driver{
 		id:           id,
 		routeID:      routeID,
@@ -41,25 +41,15 @@ func NewDriver(id, routeID uuid.UUID, telephone, name, password string, balance 
 		password:     password,
 		balance:      balance,
 		lastPaidDate: lastPaidDate,
-	}, nil
+	}
 }
 
 // Создаем водителя
-func CreateDriver(routeID uuid.UUID, telephone, name, password string) (*Driver, error) {
+func CreateDriver(routeID uuid.UUID, telephone, name, password string) *Driver {
 
 	var zeroTime time.Time
-	// zeroTime := time.Now()
 
 	return NewDriver(uuid.New(), routeID, telephone, name, password, 0, zeroTime)
-}
-
-// изменить координаты
-func (d *Driver) ChangeGPS(latitude float64, longitude float64) error {
-
-	d.latitude = latitude
-	d.longitude = longitude
-
-	return nil
 }
 
 // увеличить баланс

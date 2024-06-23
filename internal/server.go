@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/cfif1982/taxi/internal/application/middlewares"
-	"github.com/cfif1982/taxi/internal/base"
 	"github.com/cfif1982/taxi/pkg/logger"
 	"github.com/go-chi/chi/v5"
 
+	baseHandler "github.com/cfif1982/taxi/internal/application/connected_drivers_base/handlers"
 	driversHandler "github.com/cfif1982/taxi/internal/application/drivers/handlers"
 	routesHandler "github.com/cfif1982/taxi/internal/application/routes/handlers"
 
+	baseInfra "github.com/cfif1982/taxi/internal/infrastructure/connected_drivers_base"
 	driversInfra "github.com/cfif1982/taxi/internal/infrastructure/drivers"
 	routesInfra "github.com/cfif1982/taxi/internal/infrastructure/routes"
 )
@@ -58,18 +59,23 @@ func (s *Server) Run(serverAddr string) error {
 		s.logger.Info("postgres for drivers DB initialized")
 	}
 
-	// инициализация базы для хранения подключенных водителей
-	connectedDriversBase, err := base.CreateConnectedDriversBase(s.logger)
+	// Создаем репозиторий для работы с базой подключенных водителей
+	baseRepo := baseInfra.NewInMemoryRepo()
+
 	if err != nil {
-		s.logger.Fatal("can't initialize active drivers base: " + err.Error())
+		s.logger.Fatal("can't initialize in_memory DB for connected drivers: " + err.Error())
+	} else {
+		s.logger.Info("in_memory DB for connected drivers initialized")
 	}
 
 	// создаем хэндлер маршрута и передаем ему нужную БД
 	routeHandler := routesHandler.NewHandler(routeRepo, s.logger)
 
 	// создаем хэндлер водителя
-	// передаем ему слайс подключенных водителей
-	driverHandler := driversHandler.NewHandler(driverRepo, connectedDriversBase, s.logger)
+	driverHandler := driversHandler.NewHandler(driverRepo, s.logger)
+
+	// создаем хэндлер базы подключеных водителей
+	conBaseHandler := baseHandler.NewHandler(driverRepo, baseRepo, s.logger)
 
 	// создаем роутер
 	routerChi := chi.NewRouter()
@@ -84,8 +90,11 @@ func (s *Server) Run(serverAddr string) error {
 	// назначаем ручки для admin
 	s.SetAdminHandlers(routerChi, routeHandler)
 
+	// назначаем ручки для базы подключенных водителей
+	s.SetBaseHandlers(routerChi, conBaseHandler)
+
 	// запускаем обработку базы подключенных водителей
-	go connectedDriversBase.HandleBase()
+	go handleBase()
 
 	s.logger.Info("Starting server", "addr", serverAddr)
 
@@ -110,6 +119,11 @@ func (s *Server) SetDriverHandlers(router *chi.Mux, handler *driversHandler.Hand
 	router.Post(`/api/driver/registration`, handler.Registration())
 	router.Post(`/api/driver/login`, handler.DriverLogin())
 	router.Put(`/api/driver/balance`, handler.IncreaseBalance())
-	router.Get(`/api/driver/start`, middlewares.DriverAuthMiddleware(handler.Start()))
 	router.Get(`/api/driver/balance`, middlewares.DriverAuthMiddleware(handler.GetBalance()))
+}
+
+// назначаем ручки для базы подключенных водителей
+func (s *Server) SetBaseHandlers(router *chi.Mux, handler *baseHandler.Handler) {
+
+	router.Get(`/api/driver/start`, middlewares.DriverAuthMiddleware(handler.Start()))
 }
