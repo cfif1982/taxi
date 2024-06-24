@@ -10,11 +10,11 @@ import (
 	"github.com/cfif1982/taxi/pkg/logger"
 	"github.com/go-chi/chi/v5"
 
-	baseHandler "github.com/cfif1982/taxi/internal/application/connected_drivers_base/handlers"
+	connDriversHandler "github.com/cfif1982/taxi/internal/application/conndriver/handlers"
 	driversHandler "github.com/cfif1982/taxi/internal/application/drivers/handlers"
 	routesHandler "github.com/cfif1982/taxi/internal/application/routes/handlers"
 
-	baseInfra "github.com/cfif1982/taxi/internal/infrastructure/connected_drivers_base"
+	connDriversInfra "github.com/cfif1982/taxi/internal/infrastructure/conndriver"
 	driversInfra "github.com/cfif1982/taxi/internal/infrastructure/drivers"
 	routesInfra "github.com/cfif1982/taxi/internal/infrastructure/routes"
 )
@@ -59,14 +59,8 @@ func (s *Server) Run(serverAddr string) error {
 		s.logger.Info("postgres for drivers DB initialized")
 	}
 
-	// Создаем репозиторий для работы с базой подключенных водителей
-	baseRepo := baseInfra.NewInMemoryRepo()
-
-	if err != nil {
-		s.logger.Fatal("can't initialize in_memory DB for connected drivers: " + err.Error())
-	} else {
-		s.logger.Info("in_memory DB for connected drivers initialized")
-	}
+	// Создаем репозиторий для работы с подключенными водителями
+	connDriverRepo := connDriversInfra.NewInMemoryRepo()
 
 	// создаем хэндлер маршрута и передаем ему нужную БД
 	routeHandler := routesHandler.NewHandler(routeRepo, s.logger)
@@ -74,8 +68,8 @@ func (s *Server) Run(serverAddr string) error {
 	// создаем хэндлер водителя
 	driverHandler := driversHandler.NewHandler(driverRepo, s.logger)
 
-	// создаем хэндлер базы подключеных водителей
-	conBaseHandler := baseHandler.NewHandler(driverRepo, baseRepo, s.logger)
+	// создаем хэндлер подключеных водителей
+	connDriverHandler := connDriversHandler.NewHandler(driverRepo, connDriverRepo, s.logger)
 
 	// создаем роутер
 	routerChi := chi.NewRouter()
@@ -91,10 +85,18 @@ func (s *Server) Run(serverAddr string) error {
 	s.SetAdminHandlers(routerChi, routeHandler)
 
 	// назначаем ручки для базы подключенных водителей
-	s.SetBaseHandlers(routerChi, conBaseHandler)
+	s.SetBaseHandlers(routerChi, connDriverHandler)
 
-	// запускаем обработку базы подключенных водителей
-	go handleBase()
+	// создаем базу подключенных водителей
+	//**************************************
+	// создаем канал для получения данных от водителей
+	channelReceiver := connDriversInfra.NewChannelReceiver()
+
+	// создаем базу подключенных водителей
+	base := NewConnectedDriversBase(connDriverRepo, channelReceiver, s.logger)
+
+	// запускаем базу в работу
+	go base.StartBase()
 
 	s.logger.Info("Starting server", "addr", serverAddr)
 

@@ -12,14 +12,6 @@ var (
 	ErrDriverNotFound = errors.New("driver not found")
 )
 
-type SenderDataToDriver interface {
-	SendDataToDriver() (string, error)
-}
-
-type ReceiverDataFromDriver interface {
-	ReceiveDataFromDriver() (string, error)
-}
-
 // подключенный к серверу водитель, т.е. водитель с которым активно соединение
 // QUESTION: а такой объект, с интерфейсом, можно будет хранить в постгрю?
 type ConnectedDriver struct {
@@ -27,7 +19,7 @@ type ConnectedDriver struct {
 	latitude         float64
 	longitude        float64
 	receivedDataTime time.Time // время получения данных от водителя. Нужно для определения состояния соединения
-	dataSender       SenderDataToDriver
+	dataSender       DataSenderToDriverInterface
 }
 
 func NewConnectedDriver(id uuid.UUID, latitude, longitude float64, receivedDataTime time.Time) *ConnectedDriver {
@@ -55,6 +47,6 @@ func (d *ConnectedDriver) ReceivedDataTime() time.Time {
 	return d.receivedDataTime
 }
 
-func (d *ConnectedDriver) DataSender() SenderDataToDriver {
+func (d *ConnectedDriver) DataSender() DataSenderToDriverInterface {
 	return d.dataSender
 }
