@@ -10,10 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// создаю свой тип для ключей контекста. Нужно хранить id авторизованного водителя
-type ctxKey string
+// // создаю свой тип для ключей контекста. Нужно хранить id авторизованного водителя
+// type ctxKey string
 
-const KeyDriverID ctxKey = "driver_id" //  ключ в контексте для поля driver_id
+// const KeyDriverID ctxKey = "driver_id" //  ключ в контексте для поля driver_id
 
 // Интерфейс репозитория
 type DriverRepositoryInterface interface {

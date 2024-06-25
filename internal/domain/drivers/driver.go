@@ -24,8 +24,6 @@ type Driver struct {
 	telephone    string
 	password     string
 	name         string
-	latitude     float64
-	longitude    float64
 	balance      int
 	lastPaidDate time.Time
 }
@@ -111,14 +109,4 @@ func (d *Driver) Balance() int {
 // возвращщаем поле lastPaidDate
 func (d *Driver) LastPaidDate() time.Time {
 	return d.lastPaidDate
-}
-
-// возвращщаем поле latitude
-func (d *Driver) Latitude() float64 {
-	return d.latitude
-}
-
-// возвращщаем поле longitude
-func (d *Driver) Longitude() float64 {
-	return d.longitude
 }

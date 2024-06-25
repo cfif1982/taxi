@@ -9,8 +9,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	"github.com/cfif1982/taxi/internal/base"
+	"github.com/cfif1982/taxi/internal/application"
+
 	"github.com/cfif1982/taxi/internal/domain/drivers"
+	"github.com/cfif1982/taxi/internal/domain/queueitem"
+	queueItemsInfra "github.com/cfif1982/taxi/internal/infrastructure/queueitem"
 	"github.com/cfif1982/taxi/pkg/logger"
 )
 
@@ -34,8 +37,8 @@ func (h *Handler) Start() http.HandlerFunc {
 
 		// узнаем id водителя из контекста запроса
 		var driverID uuid.UUID
-		if req.Context().Value(KeyDriverID) != nil {
-			driverID = req.Context().Value(KeyDriverID).(uuid.UUID)
+		if req.Context().Value(application.KeyDriverID) != nil {
+			driverID = req.Context().Value(application.KeyDriverID).(uuid.UUID)
 		}
 
 		// Если id водителя нет, то ошибка
@@ -64,14 +67,14 @@ func (h *Handler) Start() http.HandlerFunc {
 			// узнаем стоимость работы за один день
 			cost := getCost()
 
-			// QUESTION: нужно ли здесь проверять баланс? я при списании это делаю. Ии лучше подстраховываться в таких случаях?
+			// QUESTION: нужно ли здесь проверять баланс? я следующей операцией, при списании, эту же проверку делаю. Или лучше подстраховываться в таких случаях?
 			if driver.Balance() < cost {
 				http.Error(rw, drivers.ErrInsufficientFunds.Error(), http.StatusPaymentRequired)
 				return
 			}
 
 			// списываем с баланса стоимость работы и сохраняем дату последней оплаты как сегодняшшнюю
-			// QUESTION: изменение даты лучше вынести в отдельный метод?
+			// QUESTION: сейчас изменение даты происходит внутри ReduceBalance. Или изменение даты лучше вынести в отдельный метод?
 			if err = driver.ReduceBalance(cost); err != nil {
 				http.Error(rw, drivers.ErrInsufficientFunds.Error(), http.StatusPaymentRequired)
 				return
@@ -99,49 +102,67 @@ func (h *Handler) Start() http.HandlerFunc {
 
 		h.logger.Info("Start websocket:")
 
-		connectedDriver := base.ConnectedDriver{
-			ID:                 driver.ID(),
-			SendDataToDriverCH: make(chan []byte),
-			DoneCH:             make(chan struct{}),
-		}
+		// Создаем обработчик сообщений водителя - DriverMsgHandler
+		// DriverMsgHandler отвечает за прием сообщений от сервера
+		// сейчас он реализован через каналы. Но можно реализовать и через RabbitMQ
+		driverMsgHandler := queueItemsInfra.NewChannelDriverMsgHandler()
 
-		// читаем данные от водителя
+		// ожидаем данные из сокета
 		// горутина будет закрываться при закрытии websocket
-		go readDataFromDriver(conn, h.logger, &connectedDriver, h.connectedDriversBase.ReceiveDataFromDriverCH)
+		go waitDataFromSocket(conn, driverID, driverMsgHandler, h.serverMessageHandler, h.logger)
+
+		// ожидаем данные от сервера
+		// горутина будет закрываться при получении сигнала на закрытие
+		go waitDataFromServer(conn, driverMsgHandler, h.logger)
 
 		// здесь нужен бесконечный цикл, т.к. при завершении функции, websocket закрывается
 		// но нам нужен сигнал о том, что мы действительно хотим закрыть сокет
-		// поэтому ждем этот сигнал чеерез канал водителя
-		// ну и до кучи чтобы еще одну горутину не делать - тут же отсылаем данные в сокет
-		// данные для этого получаем через канал водителя из базы подключенных водителей
-		for {
-			select {
-			case <-connectedDriver.DoneCH: // закрытие канала done
-				h.logger.Info("Close websocket")
-				return
-			case data := <-connectedDriver.SendDataToDriverCH:
-				// отправляем данные в сокет
-				err = conn.WriteMessage(websocket.TextMessage, data)
-				if err != nil {
-					h.logger.Info("Ошибка отправки данных:", err.Error())
-					return
-				}
-			}
-
-		}
+		// поэтому ждем этот сигнал чеерез хэндлер  водителя
+		driverMsgHandler.WaitCloseSignal()
 	}
 
 	return http.HandlerFunc(fn)
 }
 
-// читаем данные от водителя
-func readDataFromDriver(
+// ожидаем данные от сервера
+func waitDataFromServer(
 	conn *websocket.Conn,
-	logger *logger.Logger,
-	connectedDriver *base.ConnectedDriver,
-	receiveDataFromDriverCH chan *base.ConnectedDriver) {
+	driverMsgHandler queueitem.DriverMsgHandlerI,
+	logger *logger.Logger) {
 
-	// Чтение сообщений от клиента
+	for {
+		// ждем данные от сервера
+		driversString, err := driverMsgHandler.ReceiveMessageFromServer()
+
+		// если канал закрывается, то произойдет ошибка
+		if err != nil {
+			if err == queueItemsInfra.ErrDriverChannelClosed {
+				logger.Info("channel closed")
+				return
+			}
+
+			logger.Info("error:", err.Error())
+			return
+		}
+
+		// отправляем данные в сокет
+		err = conn.WriteMessage(websocket.TextMessage, driversString)
+		if err != nil {
+			logger.Info("Ошибка отправки данных:", err.Error())
+			return
+		}
+	}
+}
+
+// ожидаем данные из сокета
+func waitDataFromSocket(
+	conn *websocket.Conn,
+	driverID uuid.UUID,
+	driverMsgHandler queueitem.DriverMsgHandlerI,
+	serverMsgHandler queueItemsInfra.ServerMsgHandlerI,
+	logger *logger.Logger) {
+
+	// Чтение сообщений от водителя
 	for {
 		// Чтение сообщения
 		_, message, err := conn.ReadMessage()
@@ -166,13 +187,16 @@ func readDataFromDriver(
 			break
 		}
 
-		// сохраняем данные GPS
-		connectedDriver.Latitude = gps.Latitude
-		connectedDriver.Longitude = gps.Longitude
-		connectedDriver.ReceivedDataTime = time.Now()
+		// создаем элемент очереди
+		queueItem := queueitem.NewQueueItem(
+			driverID,
+			gps.Latitude,
+			gps.Longitude,
+			time.Now(),
+			driverMsgHandler)
 
 		// отправляем данные в канал
-		receiveDataFromDriverCH <- connectedDriver
+		serverMsgHandler.SendMessageToServer(queueItem)
 	}
 }
 

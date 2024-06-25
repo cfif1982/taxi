@@ -35,9 +35,7 @@ type ConnectedDriver struct {
 type ConnectedDriversBase struct {
 	base                    *map[uuid.UUID]*ConnectedDriver // решил сделать map, а не слайс. В мапе быстрее будет искать по id нужного водителя
 	logger                  *logger.Logger                  // логгер
-	ReceiveDataFromDriverCH chan *ConnectedDriver           // канал, по которому будут передаваться данные от водителей
-	// RemoveDriverCH          chan uuid.UUID               // канал, по которому будет передаваться id водителя, удаляемого из базы подключенных водителей
-	// mapObjects              *map[uuid.UUID]*MapObject    // здесь буду храниться объекты размещенные на карте: иконки аварии, гаишники, другие пометки
+	receiveDataFromDriverCH chan *ConnectedDriver           // канал, по которому будут передаваться данные от водителей
 }
 
 // Создаем базу
@@ -48,7 +46,7 @@ func CreateConnectedDriversBase(logger *logger.Logger) (*ConnectedDriversBase, e
 	return &ConnectedDriversBase{
 		base:                    &base,
 		logger:                  logger,
-		ReceiveDataFromDriverCH: make(chan *ConnectedDriver),
+		receiveDataFromDriverCH: make(chan *ConnectedDriver),
 		// RemoveDriverCH:          make(chan uuid.UUID),
 	}, nil
 }
@@ -66,7 +64,7 @@ func (b *ConnectedDriversBase) HandleBase() {
 			b.broadcastDataToAllDrivers()
 
 		// обновляем данные водителя в базе. Если его там нет, то добавляем
-		case connectedDriver := <-b.ReceiveDataFromDriverCH:
+		case connectedDriver := <-b.receiveDataFromDriverCH:
 			b.updateDriversData(connectedDriver)
 
 			// удаляем неактивного водителя из базы. Пока не знаю - нужно это или нет

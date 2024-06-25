@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/cfif1982/taxi/internal/application"
 	"github.com/cfif1982/taxi/internal/domain/drivers"
 	"github.com/google/uuid"
 )
@@ -22,8 +23,9 @@ func (h *Handler) GetBalance() http.HandlerFunc {
 
 		// узнаем id водителя из контекста запроса
 		var driverID uuid.UUID
-		if req.Context().Value(KeyDriverID) != nil {
-			driverID = req.Context().Value(KeyDriverID).(uuid.UUID)
+		// if req.Context().Value(KeyDriverID) != nil {
+		if req.Context().Value(application.KeyDriverID) != nil {
+			driverID = req.Context().Value(application.KeyDriverID).(uuid.UUID)
 		}
 
 		// Если id водителя нет, то ошибка

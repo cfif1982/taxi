@@ -9,25 +9,54 @@ import (
 	"github.com/cfif1982/taxi/internal/application/middlewares"
 	"github.com/cfif1982/taxi/pkg/logger"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
-	connDriversHandler "github.com/cfif1982/taxi/internal/application/conndriver/handlers"
 	driversHandler "github.com/cfif1982/taxi/internal/application/drivers/handlers"
+	queueItemsHandler "github.com/cfif1982/taxi/internal/application/queueitem/handlers"
 	routesHandler "github.com/cfif1982/taxi/internal/application/routes/handlers"
 
-	connDriversInfra "github.com/cfif1982/taxi/internal/infrastructure/conndriver"
 	driversInfra "github.com/cfif1982/taxi/internal/infrastructure/drivers"
+	queueItemsInfra "github.com/cfif1982/taxi/internal/infrastructure/queueitem"
 	routesInfra "github.com/cfif1982/taxi/internal/infrastructure/routes"
 )
 
+// Интерфейс репозитория очереди.
+// Делаю репозиторий для того, чтобы была возможность реализовать не только в InMemory, но и через постгрю
+// Очередь состоит из элементов, которые описывают водителей, с которыми установлено соединение
+type QueueRepositoryInterface interface {
+
+	// запускаем очередь в работу
+	StartQueue()
+
+	// удаляем водителя из очереди
+	RemoveDriver(driverID uuid.UUID) error
+
+	// Получаем обработчик сообщений сервера - ServerMessageHandler
+	// ServerMessageHandler отвечает за прием сообщений от водителей
+	ServerMessageHandler() queueItemsInfra.ServerMsgHandlerI
+}
+
 // структура сервера
 type Server struct {
-	logger *logger.Logger
+	queueRepo QueueRepositoryInterface
+	logger    *logger.Logger
 }
 
 // Конструктор Server
 func NewServer(logger *logger.Logger) Server {
+
+	// Создаем обработчик сообщений сервера - ServerMsgHandler
+	// ServerMsgHandler отвечает за прием сообщений от водителей
+	// сейчас он реализован через каналы. Но можно реализовать и через RabbitMQ
+	serverMsgHandler := queueItemsInfra.NewChannelServerMsgHandler()
+
+	// Создаем репозиторий очереди
+	// Сейчас репозиторий реализован как InMemory, но можно реализовать из через постгрю
+	queueRepo := queueItemsInfra.NewInMemoryRepo(serverMsgHandler, logger)
+
 	return Server{
-		logger: logger,
+		queueRepo: queueRepo,
+		logger:    logger,
 	}
 }
 
@@ -59,17 +88,14 @@ func (s *Server) Run(serverAddr string) error {
 		s.logger.Info("postgres for drivers DB initialized")
 	}
 
-	// Создаем репозиторий для работы с подключенными водителями
-	connDriverRepo := connDriversInfra.NewInMemoryRepo()
-
 	// создаем хэндлер маршрута и передаем ему нужную БД
 	routeHandler := routesHandler.NewHandler(routeRepo, s.logger)
 
 	// создаем хэндлер водителя
 	driverHandler := driversHandler.NewHandler(driverRepo, s.logger)
 
-	// создаем хэндлер подключеных водителей
-	connDriverHandler := connDriversHandler.NewHandler(driverRepo, connDriverRepo, s.logger)
+	// создаем хэндлер очереди
+	queueItemHandler := queueItemsHandler.NewHandler(driverRepo, s.queueRepo.ServerMessageHandler(), s.logger)
 
 	// создаем роутер
 	routerChi := chi.NewRouter()
@@ -84,19 +110,11 @@ func (s *Server) Run(serverAddr string) error {
 	// назначаем ручки для admin
 	s.SetAdminHandlers(routerChi, routeHandler)
 
-	// назначаем ручки для базы подключенных водителей
-	s.SetBaseHandlers(routerChi, connDriverHandler)
+	// назначаем ручки для очереди
+	s.SetQueueItemHandlers(routerChi, queueItemHandler)
 
-	// создаем базу подключенных водителей
-	//**************************************
-	// создаем канал для получения данных от водителей
-	channelReceiver := connDriversInfra.NewChannelReceiver()
-
-	// создаем базу подключенных водителей
-	base := NewConnectedDriversBase(connDriverRepo, channelReceiver, s.logger)
-
-	// запускаем базу в работу
-	go base.StartBase()
+	// запускаем очередь в работу
+	s.queueRepo.StartQueue()
 
 	s.logger.Info("Starting server", "addr", serverAddr)
 
@@ -125,7 +143,7 @@ func (s *Server) SetDriverHandlers(router *chi.Mux, handler *driversHandler.Hand
 }
 
 // назначаем ручки для базы подключенных водителей
-func (s *Server) SetBaseHandlers(router *chi.Mux, handler *baseHandler.Handler) {
+func (s *Server) SetQueueItemHandlers(router *chi.Mux, handler *queueItemsHandler.Handler) {
 
-	router.Get(`/api/driver/start`, middlewares.DriverAuthMiddleware(handler.Start()))
+	router.Get(`/api/queue/start`, middlewares.DriverAuthMiddleware(handler.Start()))
 }

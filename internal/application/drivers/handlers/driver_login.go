@@ -40,8 +40,6 @@ func (h *Handler) DriverLogin() http.HandlerFunc {
 		}
 
 		// нужно получить пароль водителя по его телефону
-		// QUESTION: как тут правильно поступить - сделать запрос к БД и по телефону найти пароль?
-		// либо сделать запрос к БД и по телефону найти водителя (это агрегат) и уже у водителя вызвать метод для получения пароля (Password())?
 		driver, err := h.driverRepo.GetDriverByTelephone(driverRequest.Telephone)
 		if err != nil {
 			http.Error(rw, drivers.ErrWrongPassword.Error(), http.StatusUnauthorized)

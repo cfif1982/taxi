@@ -47,7 +47,6 @@ func (h *Handler) EditRoute() http.Handler {
 		}
 
 		// Получаем строку точек маршрута из DTO запроса.
-		// QUESTION: здесь всё тот же вопрос про маршал анмаршал - двойная работа.
 		routePointsString, _ := json.Marshal(routeDTO.Points)
 
 		// создаем объект маршрута по данным из запроса

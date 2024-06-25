@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/cfif1982/taxi/internal/application"
 	"github.com/cfif1982/taxi/internal/application/drivers/handlers"
 	"github.com/cfif1982/taxi/internal/domain/drivers"
 	"github.com/google/uuid"
@@ -31,7 +32,7 @@ func DriverAuthMiddleware(h http.Handler) http.HandlerFunc {
 		}
 
 		// создаю контекст для сохранения userID
-		ctx := context.WithValue(req.Context(), handlers.KeyDriverID, userID)
+		ctx := context.WithValue(req.Context(), application.KeyDriverID, userID)
 
 		// обрабатываем запрос с контекстом
 		h.ServeHTTP(rw, req.WithContext(ctx))

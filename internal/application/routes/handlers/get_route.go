@@ -59,10 +59,6 @@ func (h *Handler) GetRoute() http.Handler {
 		// сохраняем полученные данные в DTO
 		arrPointsDTO := []GetRouteResponsePointDTO{} // слайс для хранения точек маршрута
 
-		// QUESTION: т.к. в базе данных храним список точек в виде строки json, то получаю из БД строку точек
-		// Такой же вопрос был в AddRoute. получается, что сначала я из строки запроса Unmarshal в DTO, а затем обратно часть этого DTO Marshal в строку
-		// получается двойная работа. Или такой подход норм в этом случае?
-
 		// unmarshal строку точек маршрута из БД в DTO
 		if err = json.Unmarshal([]byte(route.Points()), &arrPointsDTO); err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
