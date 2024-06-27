@@ -11,14 +11,15 @@ import (
 
 // DTO для запроса и ответа
 type EditRouteRequestPointDTO struct {
-	Name      string  `json:"name"`
-	Stop      bool    `json:"stop"`
-	Latitude  float32 `json:"latitude"`
-	Longitude float32 `json:"longitude"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Stop      bool      `json:"stop"`
+	Latitude  float32   `json:"latitude"`
+	Longitude float32   `json:"longitude"`
 }
 
 type EditRouteRequestRouteDTO struct {
-	ID     uuid.UUID                  `json:"route_id"`
+	ID     uuid.UUID                  `json:"id"`
 	Name   string                     `json:"name"`
 	Points []EditRouteRequestPointDTO `json:"points"`
 }
@@ -46,16 +47,14 @@ func (h *Handler) EditRoute() http.Handler {
 			return
 		}
 
-		// Получаем строку точек маршрута из DTO запроса.
-		routePointsString, _ := json.Marshal(routeDTO.Points)
-
-		// создаем объект маршрута по данным из запроса
-		route, err := routes.NewRoute(routeDTO.ID, routeDTO.Name, string(routePointsString))
-
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
+		// создаем слайс точек из запроса
+		points := make([]routes.Point, 0, len(routeDTO.Points))
+		for _, p := range routeDTO.Points {
+			points = append(points, *routes.NewPoint(p.ID, p.Name, p.Stop, p.Latitude, p.Longitude))
 		}
+
+		// создаем маршрут из данных запроса
+		route := routes.NewRoute(routeDTO.ID, routeDTO.Name, points)
 
 		// запрос к БД - сохраняем измененные данные маршрута
 		err = h.routeRepo.SaveRoute(route)

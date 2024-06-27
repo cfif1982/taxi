@@ -9,7 +9,7 @@ import (
 
 // DTO для запроса и ответа
 type GetAllRoutesResponseDTO struct {
-	ID   uuid.UUID `json:"route_id"`
+	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 }
 

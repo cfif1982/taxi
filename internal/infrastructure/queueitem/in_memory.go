@@ -2,7 +2,6 @@ package queueitem
 
 import (
 	"encoding/json"
-	"errors"
 	"math"
 	"sync"
 	"time"
@@ -11,11 +10,6 @@ import (
 	"github.com/cfif1982/taxi/pkg/logger"
 
 	"github.com/google/uuid"
-)
-
-// список возможных шибок
-var (
-	ErrWrongDataFormat = errors.New("wrong data format")
 )
 
 const SendDataPeriod = time.Second * 2 // частота отсылки данных водителю
@@ -80,36 +74,22 @@ func (r *InMemoryRepository) handleQueue() {
 		select {
 		// отсылаем данные всем водителями
 		case <-ticker.C:
-			err := r.broadcastDataToAllDrivers()
-
-			// QUESTION: не пойму как правильно работать с ошибками((
-			// я создал свою ошибку - ErrWrongDataFormat = errors.New("wrong data format")
-			// вот здесь вывожу информацию об ошибке
-			// но зачем? я точно также мог вывести это сообщение в месте, где эта ошибка возникла и всё
-			// запутался(( в каких случаях нужно создавать свою ошибку и работать с ней, а когда достаточно просто вывести в лог сообщение
-			if err != nil {
-				r.logger.Info("Неверный формат данных в очереди:", err.Error())
-			}
+			r.broadcastDataToAllDrivers()
 		}
 	}
 }
 
 // отправляем данные всем водителям
-func (r *InMemoryRepository) broadcastDataToAllDrivers() error {
+func (r *InMemoryRepository) broadcastDataToAllDrivers() {
 
-	// QUESTION: тут я правильно делаю? сначала блокирую, потом делаю копию, разблокирую и уже с копией работаю
+	// QUESTION:  здесь нужно добавить defer
 	r.mu.Lock()
-
-	// делаем копию очереди, чтобы можно было по ней пробежаться не мешая добавлению данных
-	queueCopy := r.queue
-
-	r.mu.Unlock()
 
 	// формируем данные для отправки
 	// слайс для отправки данных
 	arrDriverDataDTO := []sendToDriverDataDTO{}
 
-	for _, v := range queueCopy {
+	for _, v := range r.queue {
 
 		// сохраняем даные для формирования ответа сервера
 		arrDriverDataDTO = append(
@@ -125,13 +105,14 @@ func (r *InMemoryRepository) broadcastDataToAllDrivers() error {
 	driversString, err := json.Marshal(arrDriverDataDTO)
 
 	if err != nil {
-		return ErrWrongDataFormat
+		r.logger.Info("Неверный формат данных в очереди:", err.Error())
+		return
 	}
 
 	// пробегаемся по очереди и отправляем  данные
 	// Здесь же мы определяем состояние соединения с водителем.
 	// Делаем это по разнице между текущим временем и временем последнего сообщения от водителя
-	for _, v := range queueCopy {
+	for _, v := range r.queue {
 		// узнаем состояние соединения с водителем
 		// разница между текущим временем и временем получения последних данных от водителя
 		diff := int(math.Round(time.Since(v.ReceivedDataTime()).Seconds()))
@@ -147,7 +128,7 @@ func (r *InMemoryRepository) broadcastDataToAllDrivers() error {
 		v.DriverMsgHandler().SendMessageToDriver(driversString)
 	}
 
-	return nil
+	r.mu.Unlock()
 }
 
 // удаляем водителя из очереди

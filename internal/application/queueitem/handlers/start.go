@@ -67,14 +67,7 @@ func (h *Handler) Start() http.HandlerFunc {
 			// узнаем стоимость работы за один день
 			cost := getCost()
 
-			// QUESTION: нужно ли здесь проверять баланс? я следующей операцией, при списании, эту же проверку делаю. Или лучше подстраховываться в таких случаях?
-			if driver.Balance() < cost {
-				http.Error(rw, drivers.ErrInsufficientFunds.Error(), http.StatusPaymentRequired)
-				return
-			}
-
 			// списываем с баланса стоимость работы и сохраняем дату последней оплаты как сегодняшшнюю
-			// QUESTION: сейчас изменение даты происходит внутри ReduceBalance. Или изменение даты лучше вынести в отдельный метод?
 			if err = driver.ReduceBalance(cost); err != nil {
 				http.Error(rw, drivers.ErrInsufficientFunds.Error(), http.StatusPaymentRequired)
 				return

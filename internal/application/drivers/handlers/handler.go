@@ -48,7 +48,6 @@ func NewHandler(driverRepo DriverRepositoryInterface, logger *logger.Logger) *Ha
 // считываем данные из запроса и анмаршалим их в dto
 // неможем readRequestToDTO написать как метод хэндлера, т.е. (h *Handler) readRequestToDTO
 // из-за того, что в GO методы не могут иметь собственные параметры тика, как функции
-// QUESTION: решил написать дженерик для считывания данных из запроса в DTO. Нормлаьный подход? этот дженерик тут нужно описать?
 func readRequestToDTO[T any](h *Handler, req *http.Request, dto *T) error {
 
 	// после чтения тела запроса, закрываем

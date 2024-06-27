@@ -29,7 +29,6 @@ type DriverMsgHandlerI interface {
 }
 
 // элемент очереди, т.е. водитель с которым активно соединение
-// QUESTION: а такой объект, с интерфейсом, можно будет хранить в постгрю?
 type QueueItem struct {
 	driverID         uuid.UUID
 	latitude         float64

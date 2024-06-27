@@ -23,7 +23,6 @@ func (h *Handler) GetBalance() http.HandlerFunc {
 
 		// узнаем id водителя из контекста запроса
 		var driverID uuid.UUID
-		// if req.Context().Value(KeyDriverID) != nil {
 		if req.Context().Value(application.KeyDriverID) != nil {
 			driverID = req.Context().Value(application.KeyDriverID).(uuid.UUID)
 		}

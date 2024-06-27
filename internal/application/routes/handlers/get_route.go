@@ -10,14 +10,15 @@ import (
 
 // DTO для запроса и ответа
 type GetRouteResponsePointDTO struct {
-	Name      string  `json:"name"`
-	Stop      bool    `json:"stop"`
-	Latitude  float32 `json:"latitude"`
-	Longitude float32 `json:"longitude"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Stop      bool      `json:"stop"`
+	Latitude  float32   `json:"latitude"`
+	Longitude float32   `json:"longitude"`
 }
 
 type GetRouteResponseRouteDTO struct {
-	ID     uuid.UUID                  `json:"route_id"`
+	ID     uuid.UUID                  `json:"id"`
 	Name   string                     `json:"name"`
 	Points []GetRouteResponsePointDTO `json:"points"`
 }
@@ -57,18 +58,23 @@ func (h *Handler) GetRoute() http.Handler {
 		}
 
 		// сохраняем полученные данные в DTO
-		arrPointsDTO := []GetRouteResponsePointDTO{} // слайс для хранения точек маршрута
+		pointsDTO := make([]GetRouteResponsePointDTO, 0, len(route.Points()))
 
-		// unmarshal строку точек маршрута из БД в DTO
-		if err = json.Unmarshal([]byte(route.Points()), &arrPointsDTO); err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
+		for _, v := range route.Points() {
+			pointsDTO = append(pointsDTO, GetRouteResponsePointDTO{
+				ID:        v.ID(),
+				Name:      v.Name(),
+				Stop:      v.Stop(),
+				Latitude:  v.Latitude(),
+				Longitude: v.Longitude(),
+			})
 		}
 
+		// создаем DTO маршрута
 		routeDTO := GetRouteResponseRouteDTO{
 			ID:     route.ID(),
 			Name:   route.Name(),
-			Points: arrPointsDTO,
+			Points: pointsDTO,
 		}
 
 		// Устанавливаем в заголовке тип передаваемых данных

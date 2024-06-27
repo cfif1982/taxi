@@ -37,22 +37,20 @@ func (h *Handler) AddRoute() http.Handler {
 			return
 		}
 
+		// получаем DTO из запроса
 		if err = json.Unmarshal(body, &routeDTO); err != nil {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// QUESTION: т.к. в базе данных храним список точек в виде строки json, то получаю обратно строку точек
-		// правильно делаю? получается, что сначала я из строки запроса анмаршалю в DTO, а затем обратно часть этого DTO маршалю в строку
-		// получается двойная работа. Или такой подход норм в этом случае?
-		routePointsString, _ := json.Marshal(routeDTO.Points)
+		// создаем слайс точек из запроса
+		points := make([]routes.Point, 0, len(routeDTO.Points))
+		for _, p := range routeDTO.Points {
+			points = append(points, *routes.CreatePoint(p.Name, p.Stop, p.Latitude, p.Longitude))
+		}
 
 		// создаем маршрут из данных запроса
-		route, err := routes.CreateRoute(routeDTO.Name, string(routePointsString))
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		route := routes.CreateRoute(routeDTO.Name, points)
 
 		// Добавляем маршрут в БД
 		err = h.routeRepo.AddRoute(route)

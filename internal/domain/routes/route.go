@@ -16,24 +16,23 @@ var (
 type Route struct {
 	id     uuid.UUID
 	name   string
-	points string
+	points []Point
 }
 
 // создаем новый объект
 // нужна для использвания в других пакетах
-func NewRoute(id uuid.UUID, name, points string) (*Route, error) {
+func NewRoute(id uuid.UUID, name string, points []Point) *Route {
 	return &Route{
 		id:     id,
 		name:   name,
 		points: points,
-	}, nil
+	}
 }
 
 // Создаем новый маршрут
-func CreateRoute(name, points string) (*Route, error) {
+func CreateRoute(name string, points []Point) *Route {
 
 	return NewRoute(uuid.New(), name, points)
-
 }
 
 // возвращщаем поле id
@@ -47,6 +46,6 @@ func (r *Route) Name() string {
 }
 
 // возвращщаем поле points
-func (r *Route) Points() string {
+func (r *Route) Points() []Point {
 	return r.points
 }

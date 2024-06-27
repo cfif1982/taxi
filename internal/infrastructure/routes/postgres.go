@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -87,22 +88,25 @@ func (r *PostgresRepository) GetAllRoutes() (*[]routes.Route, error) {
 	// в эту переменную будет сканиться результат запроса
 	var id uuid.UUID
 	var name string
-	var points string
+	var strPoints []byte
 
 	// пробегаем по всем записям
 	for rows.Next() {
-		err = rows.Scan(&id, &name, &points)
+		err = rows.Scan(&id, &name, &strPoints)
 
+		if err != nil {
+			return nil, err
+		}
+
+		var points []routes.Point
+
+		err = json.Unmarshal(strPoints, &points)
 		if err != nil {
 			return nil, err
 		}
 
 		// создаем объект возвращаем его
-		route, err := routes.NewRoute(id, name, points)
-
-		if err != nil {
-			return nil, err
-		}
+		route := routes.NewRoute(id, name, points)
 
 		arrRoutes = append(arrRoutes, *route)
 	}
@@ -119,14 +123,13 @@ func (r *PostgresRepository) AddRoute(route *routes.Route) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	routePointsString, _ := json.Marshal(route.Points())
+
 	query := "INSERT INTO routes(id, name, points) VALUES ($1, $2, $3)"
-	_, err := r.db.ExecContext(ctx, query, route.ID(), route.Name(), route.Points())
+	_, err := r.db.ExecContext(ctx, query, route.ID(), route.Name(), routePointsString)
 	if err != nil {
 		// проверяем ошибку на предмет вставки маршрута с названием, которое уже есть в БД
 		// создаем объект *pgconn.PgError - в нем будет храниться код ошибки из БД
-		// QUESTION: если я вставляю запись с уже  существующим названием, то эту ошибку я получаю - т.к. название UNIQUE
-		// но эта же самая ошибка вылезает если я вставляю запись с таким же uuid. Как различить эти ошибки?
-		// т.е. как тут различить - ошибка из-за вставки с существующим именем или с существующим ID?
 		var pgErr *pgconn.PgError
 
 		// преобразуем ошибку к типу pgconn.PgError
@@ -189,20 +192,23 @@ func (r *PostgresRepository) GetRouteByID(id uuid.UUID) (*routes.Route, error) {
 
 	// в эту переменную будет сканиться результат запроса
 	var name string
-	var points string
+	var strPoints []byte
 
-	err := row.Scan(&name, &points)
+	err := row.Scan(&name, &strPoints)
 
+	if err != nil {
+		return nil, err
+	}
+
+	var points []routes.Point
+
+	err = json.Unmarshal(strPoints, &points)
 	if err != nil {
 		return nil, err
 	}
 
 	// создаем маршрут и возвращаем его
-	route, err := routes.NewRoute(id, name, points)
-
-	if err != nil {
-		return nil, err
-	}
+	route := routes.NewRoute(id, name, points)
 
 	return route, nil
 }
