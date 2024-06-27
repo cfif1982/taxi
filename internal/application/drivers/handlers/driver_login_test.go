@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/cfif1982/taxi/mocks"
 	"github.com/cfif1982/taxi/pkg/logger"
@@ -40,6 +41,7 @@ func TestDriverLogin(t *testing.T) {
 	handler := NewHandler(mockRepo, logger)
 
 	var zeroTime time.Time
+	driverPasswordHash, _ := bcrypt.GenerateFromPassword([]byte("12345"), bcrypt.DefaultCost)
 
 	// Определяем тестовые случаи
 	tests := []struct {
@@ -61,7 +63,7 @@ func TestDriverLogin(t *testing.T) {
 			mockReturnDriver: drivers.NewDriver(
 				uuid.Must(uuid.Parse("83d7bec6-1a15-47b8-8d58-71392f528ed7")),
 				uuid.Must(uuid.Parse("83d7bec6-1a15-47b8-8d58-71392f528ed7")),
-				"89275656981", "cfif", "12345", 0, zeroTime),
+				"89275656981", "cfif", string(driverPasswordHash), 0, zeroTime),
 			mockReturnError: nil,
 			expectedCode:    http.StatusOK,
 		},

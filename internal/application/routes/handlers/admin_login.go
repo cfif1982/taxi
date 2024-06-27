@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
 
-const AdminPassword = "admin12345"         // пароль для админа
-const AdminTokenEXP = time.Hour * 3        // время жизни токена админа
-const AdminCookieName = "adminAccessToken" // название куки для хранения доступа админа
-const SecretKEY = "supersecretkey"         // ключ для генерации токена
+const EnvVarAdminPasswordName = "ADMIN_PASSWORD" // имя переменной окружения в которой хранится пароль админа
+const AdminTokenEXP = time.Hour * 3              // время жизни токена админа
+const AdminCookieName = "adminAccessToken"       // название куки для хранения доступа админа
+const SecretKEY = "supersecretkey"               // ключ для генерации токена
 
 // Claims — структура утверждений, которая включает стандартные утверждения и
 // одно пользовательское AdminPassword
@@ -48,7 +49,8 @@ func (h *Handler) AdminLogin() http.HandlerFunc {
 		}
 
 		// если пароль верный
-		if adminLoginBodyRequest.Password == AdminPassword {
+		adminPassword := os.Getenv(EnvVarAdminPasswordName)
+		if adminLoginBodyRequest.Password == adminPassword {
 
 			// генерируем и сохраняем куку
 			cookie := createAdminCookie()
@@ -72,7 +74,7 @@ func (h *Handler) AdminLogin() http.HandlerFunc {
 func createAdminCookie() *http.Cookie {
 
 	// строим строку токена для куки
-	token, _ := buildJWTString(AdminPassword)
+	token, _ := buildJWTString(os.Getenv(EnvVarAdminPasswordName))
 
 	// создаем куку в http
 	cookie := http.Cookie{}

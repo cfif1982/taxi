@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // список возможных шибок
@@ -14,7 +15,8 @@ var (
 	ErrCookieError           = errors.New("cookie error")
 	ErrDriverIsNotAuthorized = errors.New("driver is not authorized")
 	ErrDriverIsNotFound      = errors.New("driver is not found")
-	ErrInsufficientFunds     = errors.New("insufficient funds ") // недостаточно средств на балансе
+	ErrInsufficientFunds     = errors.New("insufficient funds")          // недостаточно средств на балансе
+	ErrHashGenerate          = errors.New("error while hash generation") // ошибка при генерации хэша пароля
 )
 
 // структура для хранения водителя
@@ -43,11 +45,36 @@ func NewDriver(id, routeID uuid.UUID, telephone, name, password string, balance 
 }
 
 // Создаем водителя
-func CreateDriver(routeID uuid.UUID, telephone, name, password string) *Driver {
+func CreateDriver(routeID uuid.UUID, telephone, name, password string) (*Driver, error) {
 
 	var zeroTime time.Time
 
-	return NewDriver(uuid.New(), routeID, telephone, name, password, 0, zeroTime)
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return nil, ErrHashGenerate
+	}
+
+	return NewDriver(uuid.New(), routeID, telephone, name, hashedPassword, 0, zeroTime), nil
+}
+
+// Хэширование пароля
+func hashPassword(password string) (string, error) {
+
+	// хэшируем пароль
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+// проверяем введенный пароль
+func (d *Driver) CheckPassword(enteredPassword string) error {
+
+	// сравниваем хэшированный пароль водителя и введенный пароль
+	err := bcrypt.CompareHashAndPassword([]byte(d.password), []byte(enteredPassword))
+	if err != nil {
+		return ErrWrongPassword
+	}
+
+	return nil
 }
 
 // увеличить баланс

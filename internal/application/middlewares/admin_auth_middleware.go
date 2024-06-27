@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/cfif1982/taxi/internal/application/routes/handlers"
 
@@ -24,7 +25,7 @@ func AdminAuthMiddleware(h http.Handler) http.HandlerFunc {
 		adminPas := getAdminPasswordFromToken(tokenFromCookie.Value)
 
 		// если пароль неверный, то админ не авторизован
-		if adminPas != handlers.AdminPassword {
+		if adminPas != os.Getenv(handlers.EnvVarAdminPasswordName) {
 			http.Error(rw, "wrong password", http.StatusUnauthorized)
 			return
 		}

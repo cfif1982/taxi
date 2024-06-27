@@ -47,7 +47,7 @@ func (h *Handler) DriverLogin() http.HandlerFunc {
 		}
 
 		// Если пароли не совпадают, то алярм
-		if driverRequest.Password != driver.Password() {
+		if err = driver.CheckPassword(driverRequest.Password); err != nil {
 			http.Error(rw, drivers.ErrWrongPassword.Error(), http.StatusUnauthorized)
 			return
 		}
