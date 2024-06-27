@@ -1,0 +1,73 @@
+package handlers
+
+import (
+	"encoding/json"
+	"io"
+	"net/http"
+
+	"github.com/cfif1982/taxi/internal/domain/routes"
+	"github.com/google/uuid"
+)
+
+// DTO для запроса и ответа
+type EditRouteRequestPointDTO struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Stop      bool      `json:"stop"`
+	Latitude  float32   `json:"latitude"`
+	Longitude float32   `json:"longitude"`
+}
+
+type EditRouteRequestRouteDTO struct {
+	ID     uuid.UUID                  `json:"id"`
+	Name   string                     `json:"name"`
+	Points []EditRouteRequestPointDTO `json:"points"`
+}
+
+// Обрабатываем запрос на обновление данных маршрута
+func (h *Handler) EditRoute() http.Handler {
+
+	fn := func(rw http.ResponseWriter, req *http.Request) {
+
+		var routeDTO EditRouteRequestRouteDTO
+
+		// после чтения тела запроса, закрываем
+		defer req.Body.Close()
+
+		// читаем тело запроса
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// получаем DTO из запроса
+		if err = json.Unmarshal(body, &routeDTO); err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// создаем слайс точек из запроса
+		points := make([]routes.Point, 0, len(routeDTO.Points))
+		for _, p := range routeDTO.Points {
+			points = append(points, *routes.NewPoint(p.ID, p.Name, p.Stop, p.Latitude, p.Longitude))
+		}
+
+		// создаем маршрут из данных запроса
+		route := routes.NewRoute(routeDTO.ID, routeDTO.Name, points)
+
+		// запрос к БД - сохраняем измененные данные маршрута
+		err = h.routeRepo.SaveRoute(route)
+
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// устанавливаем код 200
+		rw.WriteHeader(http.StatusOK)
+
+	}
+
+	return http.HandlerFunc(fn)
+}
